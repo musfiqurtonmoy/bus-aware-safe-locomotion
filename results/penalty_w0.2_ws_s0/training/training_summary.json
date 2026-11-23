@@ -1,0 +1,38 @@
+{
+  "run": "penalty_w0.2_ws_s0",
+  "episodes": 154,
+  "total_steps": 149128,
+  "episode_length_max": 1000,
+  "terminated_early": 11,
+  "first_episode_return": 498.560476,
+  "max_episode_return": 1177.623847,
+  "last_block": {
+    "steps": [
+      119128,
+      149128
+    ],
+    "n": 32,
+    "mean": 913.11105734375,
+    "std": 216.2324330119431
+  },
+  "previous_block": {
+    "steps": [
+      89128,
+      119128
+    ],
+    "n": 31,
+    "mean": 934.5908031612904,
+    "std": 158.9200219956087
+  },
+  "tail_slope": {
+    "steps": [
+      49128,
+      149128
+    ],
+    "n": 105,
+    "per_100k_steps": 76.79545956247513,
+    "ci95_half_width_per_100k_steps": 144.03734711238826
+  },
+  "plateau_rule": "95 % CI of the slope over the tail contains zero",
+  "plateaued": true
+}

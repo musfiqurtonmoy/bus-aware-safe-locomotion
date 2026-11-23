@@ -1,0 +1,87 @@
+\section{Shared-bus electrical model}\label{sec:model}
+\subsection{Platform}
+We model one leg of a quadruped the size of the Unitree Go1, driven by Mini Cheetah-class actuators. The gait is pronking, in which all four legs move in phase, so each leg carries a quarter of the trunk. The leg has a hip and a knee joint in the sagittal plane. Its trunk share slides on a vertical rail, which removes trunk pitch, roll and horizontal motion; we do not model the hip-abduction joint, whose body rides with the trunk share. The parts come from different sources:
+\begin{itemize}
+\item The masses, link lengths, inertias and centre-of-mass offsets of the thigh and calf, and the trunk and hip masses, are those of the Go1 model in MuJoCo Menagerie \cite{zakka2022menagerie}, which is derived from the manufacturer's public robot description. The trunk share is a quarter of the trunk mass plus the hip mass. The model does not state whether that trunk mass includes the battery.
+\item The drives are Mini Cheetah-class actuators \cite{katz2018actuator}. We take gear ratio, pole pairs, phase inductance, peak current, peak output torque, output inertia, static friction and current-loop bandwidth from that work, and derive the output torque constant from its measured motor torque constant. That work does not report the phase resistance, so we assume it. Joint viscous damping is zero, as the reported friction has negligible speed dependence. We also assume the drives' idle power $P_0=\res{par_pidle}$~W per drive (Section~\ref{sec:drive}), since no source gives the idle consumption of the drive electronics. It enters only as a constant load, and the stress tests with an auxiliary load of \res{var_paux_lo} or \res{var_paux_hi}~W instead of \res{par_paux}~W change the constant load by \res{var_paux_delta}~W either way, more than the \res{par_pidle_total}~W idle power of both drives (Section~\ref{sec:stress}). We do not model the measured torque-dependent friction or the saturation of the torque constant.
+\item The battery is a quarter share of a pack of LG 18650HG2 cells, \res{par_nseries} in series and two in parallel, with the cell model fitted to public test data \cite{kollmeyer2020hg2}. The series count follows the Go1 battery, a polymer lithium-ion pack with a charge limit voltage of 25.2~V, i.e.\ six cells at 4.2~V, and a rated capacity of 6000~mAh \cite{unitree2026go1battery}. That source does not state the cell type or the number of cells in parallel; we chose two in parallel to match the rated capacity. The Mini Cheetah's battery has the same layout of six cells in series and two in parallel \cite{katz2018actuator}.
+\end{itemize}
+Table~\ref{tab:params} lists all values, with their sources or the reason they are assumed.
+
+\subsection{Drive}\label{sec:drive}
+Each joint $i$ is driven by a surface-mounted permanent-magnet synchronous motor (PMSM) through a gear of ratio $N$, with zero direct-axis current ($i_d=0$) and a current loop assumed fast relative to the mechanics. With $p$ pole pairs, flux linkage $\psi$ (Wb), phase resistance $R$ ($\Omega$), phase inductance $L$ (H) and torque constant $k_t = 3p\psi/2$ (N\,m/A), the output torque $\tau_i$ (N\,m) and the voltages $v_{q,i}$, $v_{d,i}$ (V) on the quadrature (q) and direct (d) axes of the rotor frame at q-axis current $i_{q,i}$ (A) are
+\begin{align}
+\tau_i &= N k_t\, i_{q,i}, &
+v_{q,i} &= R\, i_{q,i} + \omega_{e,i}\psi, &
+v_{d,i} &= -\omega_{e,i} L\, i_{q,i},
+\end{align}
+where $q_i$ (rad) and $\dot q_i$ (rad/s) are the joint angle and speed and $\omega_{e,i} = pN\dot q_i$ (rad/s) is the electrical angular speed. Symbols without the index $i$, such as $i_q$, denote the vector over the drives. $N$, $p$ and $L$ come from the actuator thesis \cite{katz2018actuator}, $Nk_t$ (and with it $\psi$) is derived from its measured motor torque constant, and $R$ is assumed (Table~\ref{tab:params}).
+
+The inverter limits the currents that a drive can realise. Fed from the DC bus at voltage $\Vb$, it imposes $v_{d,i}^2+v_{q,i}^2 \le \Vb^2/3$ and $|i_{q,i}|\le I_{\max}$. $I_{\max}$ is the smaller of the peak phase current $I_{\mathrm{ph}}$ (A) and the current that gives the actuator's peak output torque $\tau_{\max}=\res{par_taumax}$~N\,m, both from \cite{katz2018actuator}, which here is \res{par_ilim}~A. The torque constant is taken as constant. At a given joint speed and bus voltage the two constraints leave an interval $[l_i,u_i]$ of admissible currents (A). If they do not intersect, the drive is limited to the point of $[-I_{\max},I_{\max}]$ nearest the voltage circle.
+
+The electrical power $P_i$ (W) that drive $i$ draws from the bus is
+\begin{equation}
+P_i = a_i\, i_{q,i} + b\, i_{q,i}^2 + P_0, \qquad a_i = N k_t \dot q_i,\quad b = \tfrac{3}{2}R ,
+\label{eq:power}
+\end{equation}
+with $P_0$ the drive's idle power; $a_i$ and $b$ follow from the drive parameters above, and $P_0$ is assumed (Section~\ref{sec:model}). A positive $a_i i_{q,i}$ is mechanical power delivered to the joint; a negative one is regenerated into the bus.
+
+\subsection{Battery and bus}
+The battery and DC link couple the two drives through one bus voltage. The battery is a Thevenin equivalent circuit of $n_s$ cells in series: open-circuit voltage $n_s V_{\mathrm{ocv}}(s)$, with $V_{\mathrm{ocv}}$ (V) that of one cell at state of charge (SOC) $s$, series resistance $R_0$ ($\Omega$) and one resistor-capacitor (RC) pair $(R_1, C_1)$ ($\Omega$, F) with voltage $v_1$ (V). With the electromotive force $E = n_s V_{\mathrm{ocv}}(s) - v_1$ (V) and the DC-link capacitance $C$ (F), the bus voltage $\Vb$ (V) and the battery current $\Ib$ (A) follow
+\begin{equation}
+C\,\dot V_{\mathrm{bus}} = \Ib - \frac{\sum_i P_i + P_{\mathrm{aux}}}{\Vb} - \frac{\Vb}{R_c}\,\chi(\Vb), \quad
+\Ib = \max\Bigl\{\frac{E-\Vb}{R_0},\, -I_{\mathrm{chg}}\Bigr\},
+\label{eq:bus}
+\end{equation}
+where:
+\begin{itemize}
+\item $P_{\mathrm{aux}}$ is a constant auxiliary load (computer and sensors) of \res{par_paux}~W per leg;
+\item $I_{\mathrm{chg}}=\res{par_ichg}$~A is the charge-current limit;
+\item $\chi(\Vb)\in[0,1]$ is the duty of an averaged brake chopper, rising linearly from $0$ at $V_{c,\mathrm{off}}=\res{par_vchopoff}$~V to $1$ at $V_{c,\mathrm{on}}=\res{par_vchop}$~V, with resistor $R_c$ ($\Omega$).
+\end{itemize}
+The DC-link capacitance is that of the leg's two drive controllers, $C=\res{par_cbus_mF}$~mF, derived from the energy stored in the controllers' input capacitors reported in \cite{katz2018actuator}. The cell model ($V_{\mathrm{ocv}}$, $R_0$, $R_1$, $C_1$) is fitted to the public cell data \cite{kollmeyer2020hg2} and scaled to the quarter pack, with an assumed wiring resistance in $R_0$; $I_{\mathrm{chg}}$ follows from the cell's fast-charge current in the test report of that dataset; $P_{\mathrm{aux}}$ and the chopper ($V_{c,\mathrm{off}}$, $V_{c,\mathrm{on}}$, $R_c$) are assumed (Table~\ref{tab:params}).
+
+Equation~\eqref{eq:bus} is stiff, so we integrate it with backward Euler over plant substeps of $\Delta t = \res{env_dtsim_ms}$~ms; a superscript $k$ marks values at the start of substep $k$. Every term, including the chopper duty and the charge limit, is evaluated at the end-of-step voltage $\Vb^{k+1}$. The resulting scalar equation has a unique root on the stable branch, at or above its turning point (Lemma~\ref{lem:step}), found by a Newton iteration safeguarded by bisection. Evaluating the chopper duty at the start of the step instead makes the discrete bus oscillate in the chopper band. The battery's RC state and state of charge are advanced after the bus step with the resulting battery current.
+
+A load larger than the bus can deliver in one substep leaves the step equation without a root on the stable branch. We call this a bus collapse. The plant then scales both drives' currents by a common factor so that the load equals that maximum, and logs the substep as a collapse.
+
+The joint speeds are held at their start-of-substep values within each substep, and MuJoCo \cite{todorov2012mujoco} advances the mechanics with the same step. The policy acts every \res{env_substeps} substeps, i.e.\ every \res{env_dtctrl_ms}~ms. Two plant-only options, both off unless stated, are used in the sensitivity study:
+\begin{itemize}
+\item a first-order current-loop lag between commanded and applied currents;
+\item a gear efficiency that scales the output torque in motoring operation.
+\end{itemize}
+The filter of Section~\ref{sec:filter} does not know about them.
+
+A substep is counted as an undervoltage if $\Vb^{k+1} < V_{\min} = \res{par_vmin}$~V, and as an overcurrent if $\Ib^{k+1} > I_{\lim} = \res{par_ibatmax}$~A. $V_{\min}$ is six times the lowest cell voltage in the battery test data, the lower end of the range in which the cell model is fitted. $I_{\lim}$ is the cell's maximum continuous discharge current from the dataset's test report for two cells in parallel, divided by four for the leg's share \cite{kollmeyer2020hg2}.
+\begin{table}[tbp]\centering\caption{Model parameters, generated from the code: symbol in the text (a short name where the text uses none), value, unit, provenance status and source, with the printed page where the source gives one. Status: VERIFIED and SOURCED, taken from the cited source; DERIVED, computed from sourced values or fitted to the public battery data (``fit to''); ASSUMED, no source, with the reason in the Source column; FIXED (training), the reference of the policy's bus-voltage observation, not a physical parameter. The field name of each parameter in the code, the full reasons and the section or table of each source are given in the provenance file released with the code.}\label{tab:params}
+{\small\gentable{tab_params}}
+\end{table}
+
+\subsection{Validation against a switching-level model}\label{sec:validation}
+We compare the averaged drive and bus model, stepped at \res{val_dtavg_ms}~ms as in the plant, with a switching-level reference of one drive on the same battery-fed bus.
+
+\emph{Reference model.} The reference is integrated with a fixed step of \res{ref_dt_us}~\textmu s and consists of:
+\begin{itemize}
+\item a three-phase two-level inverter with centre-aligned space-vector pulse-width modulation (PWM) at \res{ref_fpwm_khz}~kHz and \res{ref_deadtime_ns}~ns dead time;
+\item the PMSM in the $dq$ frame, integrated with the trapezoidal rule;
+\item a proportional-integral (PI) current loop sampled at the PWM rate, tuned by pole-zero cancellation for a bandwidth of \res{ref_ibw_hz}~Hz, with anti-windup.
+\end{itemize}
+The battery, charge limit, chopper and idle power are the same models and parameters as in the plant, so only the drive differs. The switching frequency and the current-loop bandwidth are those of the actuator thesis \cite{katz2018actuator}; the dead time is assumed.
+
+\emph{Scenarios.} The mechanical speed is imposed. Each of three scenarios runs for \res{val_tend_ms}~ms at state of charge \res{val_soc}, with a step in the q-axis current command at \res{val_tstep_ms}~ms:
+\begin{itemize}
+\item S1, a positive step at standstill;
+\item S2, a positive step at the joint speed where the steady drive voltage nearly reaches the inverter's voltage limit;
+\item S3, a negative (braking) step at the same speed.
+\end{itemize}
+
+\emph{Error measure.} We compare bus voltage, battery current and drive electrical power, with the switching signals averaged over each plant substep. Errors are peak absolute errors in percent of the peak switching signal, reported separately for the transient (from the step to \res{val_tsteady_ms}~ms) and for the steady part.
+
+\emph{Results.} In the steady part every error is at most \res{val_steady_maxpk_pct}\,\%. The transient peak errors are:
+\begin{itemize}
+\item battery current: \res{val_sone_ibat_trpk_pct}\,\%, \res{val_stwo_ibat_trpk_pct}\,\% and \res{val_sthree_ibat_trpk_pct}\,\% in S1--S3;
+\item drive power: \res{val_sone_pelec_trpk_pct}\,\%, \res{val_stwo_pelec_trpk_pct}\,\% and \res{val_sthree_pelec_trpk_pct}\,\%;
+\item bus voltage: \res{val_sone_vbus_trpk_pct}\,\%, \res{val_stwo_vbus_trpk_pct}\,\% and \res{val_sthree_vbus_trpk_pct}\,\%.
+\end{itemize}
+The averaged model omits the current-loop dynamics that the reference contains; we test the filter against them with the plant-only current-lag option above. Figure~\ref{fig:val} shows bus voltage, battery current and drive power of both models in the three scenarios.
+\begin{figure}[tbp]\centering\genfig{F1_validation}{\linewidth}\caption{Averaged model against the switching-level reference: bus voltage, battery current and drive power in scenarios S1--S3.}\label{fig:val}\end{figure}

@@ -1,0 +1,18 @@
+{\footnotesize\setlength{\tabcolsep}{3pt}\begin{tabular}{>{\raggedright\arraybackslash}p{0.17\linewidth}lrrcrcc}\toprule
+Condition & Estimator & \begin{tabular}[b]{@{}c@{}}Above\\{}$I_{\lim}$ (s)\end{tabular} & \begin{tabular}[b]{@{}c@{}}Largest\\{}$\Ib$ (A)\end{tabular} & Falls & \begin{tabular}[b]{@{}c@{}}Height\\{}0.2 (m)\end{tabular} & \begin{tabular}[b]{@{}c@{}}Confidence\\{}$\zeta$\end{tabular} & \begin{tabular}[b]{@{}c@{}}$R_0$\\{}diverged\end{tabular} \\\midrule
+Nominal & True state & 0.000 & 9.50 & 0/90 & 0.181 & -- & -- \\
+ & EKF, fixed & 0.000 & 9.56 & 0/90 & 0.181 & 0.97--1.00 & 0/90 \\
+ & EKF, conf. & 0.000 & 9.56 & 0/90 & 0.181 & 1.00--1.00 & 0/90 \\
+\midrule
+Plant $R_0\times0.75$ & True state & 0.928 & 12.06 & 0/90 & 0.188 & -- & -- \\
+ & EKF, fixed & 0.000 & 9.56 & 0/90 & 0.184 & 0.97--1.00 & 0/90 \\
+ & EKF, conf. & 0.000 & 9.56 & 0/90 & 0.184 & 1.00--1.00 & 0/90 \\
+\midrule
+Plant $R_0\times2$ & True state & 0.000 & 4.75 & 0/90 & 0.119 & -- & -- \\
+ & EKF, fixed & 0.000 & 9.56 & 0/90 & 0.147 & 0.99--1.00 & 0/90 \\
+ & EKF, conf. & 0.000 & 9.56 & 0/90 & 0.147 & 0.97--1.00 & 0/90 \\
+\midrule
+Noise $\sigma=0.05$ & True state & 0.216 & 12.66 & 0/90 & 0.153 & -- & -- \\
+ & EKF, fixed & 0.232 & 13.41 & 0/90 & 0.182 & 0.00--0.00 & 2/90 \\
+ & EKF, conf. & 0.019 & 11.55 & 0/90 & 0.165 & 0.00--0.00 & 3/90 \\
+\bottomrule\end{tabular}}

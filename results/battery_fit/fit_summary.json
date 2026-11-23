@@ -1,0 +1,235 @@
+{
+  "dataset": "Kollmeyer, Naguib, Skells, LG 18650HG2 Li-ion Battery Data, Mendeley Data v2, DOI 10.17632/b5mj79w5w9.2, CC BY 4.0",
+  "script": "scripts/fit_battery.py",
+  "level": "single cell (1S1P)",
+  "soc_fit_range": [
+    0.15,
+    1.0
+  ],
+  "ocv_grid_soc": [
+    0.0,
+    0.025,
+    0.05,
+    0.075,
+    0.1,
+    0.15,
+    0.2,
+    0.25,
+    0.3,
+    0.35,
+    0.4,
+    0.45,
+    0.5,
+    0.55,
+    0.6,
+    0.65,
+    0.7,
+    0.75,
+    0.8,
+    0.85,
+    0.9,
+    0.95,
+    1.0
+  ],
+  "temps": {
+    "25degC": {
+      "hppc_file": "data/raw/lg_hg2/25degC/549_HPPC.csv",
+      "c20_file": "data/raw/lg_hg2/25degC/549_C20DisCh.csv",
+      "hppc_sha256": "70ffb357511dd77e7c6bc14c642a095ddd51d6918b547987247100a3bd2ea29d",
+      "c20_sha256": "52eff1a8d273f353d557af8172139c2f23709499d36130ac24ffbbb820e8f232",
+      "c20_mean_cell_temp_C": 23.886053421532846,
+      "hppc_mean_cell_temp_C": 23.987538659881785,
+      "q_c20_discharge_Ah": 2.778764188744444,
+      "q_c20_charge_Ah": 2.9679833707347156,
+      "c20_charge_cc_end_soc": 0.9945926395591353,
+      "ocv_V": [
+        2.87928,
+        3.12512,
+        3.23294,
+        3.29848,
+        3.35863,
+        3.43851,
+        3.5022,
+        3.54451,
+        3.59568,
+        3.6311,
+        3.66134,
+        3.69654,
+        3.74009,
+        3.78914,
+        3.84438,
+        3.89309,
+        3.93315,
+        3.97837,
+        4.03,
+        4.07237,
+        4.09121,
+        4.11511,
+        4.18976
+      ],
+      "ocv_hi_soc_half_gap_V": 0.013719654050693642,
+      "ocv_check_vs_hppc_rests": {
+        "n": 12,
+        "rmse_mV": 15.276827095991344,
+        "mean_mV": -10.681374134581885,
+        "max_abs_mV": 39.02701579018686
+      },
+      "r0_ohm": 0.020723481494552536,
+      "r1_ohm": 0.01603841378837894,
+      "tau_s": 24.995043127167374,
+      "c1_F": 1558.4485758359845,
+      "r_10s_ohm": 0.02601187780038336,
+      "n_pulses_fit": 36,
+      "n_pulses_total": 42,
+      "fit_min_pulse_A": 0.0,
+      "rmse_fit_windows_mV": 8.403323955814194,
+      "by_pulse_current_soc_ge_lo": {
+        "3": {
+          "n": 9,
+          "rmse_mV": 4.1833063953802885,
+          "end_of_pulse_err_median_mV": 6.168431185800571
+        },
+        "6": {
+          "n": 9,
+          "rmse_mV": 6.761600488891386,
+          "end_of_pulse_err_median_mV": 7.82489029029465
+        },
+        "12": {
+          "n": 9,
+          "rmse_mV": 9.204397876611834,
+          "end_of_pulse_err_median_mV": 0.491081505031854
+        },
+        "18": {
+          "n": 9,
+          "rmse_mV": 11.59828087199688,
+          "end_of_pulse_err_median_mV": -10.8243810779598
+        }
+      },
+      "fit_all_currents": null,
+      "rmse_per_pulse_global_params_mV": {
+        "median": 8.52746097282149,
+        "max": 43.12407697140937
+      },
+      "fulltest_rmse_mV": {
+        "all": 28.08136365247696,
+        "soc_ge_lo": 14.211704356179817,
+        "soc_ge_lo_loaded": 17.97340698774513,
+        "soc_ge_lo_rest": 12.978471164305693
+      }
+    },
+    "0degC": {
+      "hppc_file": "data/raw/lg_hg2/0degC/585_HPPC.csv",
+      "c20_file": "data/raw/lg_hg2/0degC/585_C20DisCh.csv",
+      "hppc_sha256": "bdb4aee01f909c77451602a6292932a00fa8d552409ff1233a6aff572f7a04f5",
+      "c20_sha256": "1b5a67d1399f50062f067f06043e30b8919331c168b8c3516306ff64fe9b0fe3",
+      "c20_mean_cell_temp_C": -0.568717236328125,
+      "hppc_mean_cell_temp_C": -0.37522198335332935,
+      "q_c20_discharge_Ah": 2.5956647260277785,
+      "q_c20_charge_Ah": 2.683844350343053,
+      "c20_charge_cc_end_soc": 0.9853969983965799,
+      "ocv_V": [
+        2.90567,
+        3.17951,
+        3.2929,
+        3.36822,
+        3.42142,
+        3.48693,
+        3.53151,
+        3.58532,
+        3.62081,
+        3.64807,
+        3.68074,
+        3.72193,
+        3.76735,
+        3.81388,
+        3.86364,
+        3.90598,
+        3.94672,
+        3.99393,
+        4.04296,
+        4.07691,
+        4.0927,
+        4.11631,
+        4.19007
+      ],
+      "ocv_hi_soc_half_gap_V": 0.02733528946881088,
+      "ocv_check_vs_hppc_rests": {
+        "n": 10,
+        "rmse_mV": 19.512838703441567,
+        "mean_mV": -11.63264166927971,
+        "max_abs_mV": 55.21844675753673
+      },
+      "r0_ohm": 0.04215296065826722,
+      "r1_ohm": 0.026819377622255315,
+      "tau_s": 25.58012281244001,
+      "c1_F": 953.7925589747115,
+      "r_10s_ohm": 0.050830947076560336,
+      "n_pulses_fit": 16,
+      "n_pulses_total": 35,
+      "fit_min_pulse_A": 11.5,
+      "rmse_fit_windows_mV": 29.33957256116574,
+      "by_pulse_current_soc_ge_lo": {
+        "3": {
+          "n": 9,
+          "rmse_mV": 21.316737822990813,
+          "end_of_pulse_err_median_mV": 16.959294326697183
+        },
+        "6": {
+          "n": 9,
+          "rmse_mV": 28.553304136991663,
+          "end_of_pulse_err_median_mV": 25.74662672567607
+        },
+        "12": {
+          "n": 9,
+          "rmse_mV": 28.704748681861997,
+          "end_of_pulse_err_median_mV": -5.003989784202467
+        },
+        "18": {
+          "n": 7,
+          "rmse_mV": 30.1361314162225,
+          "end_of_pulse_err_median_mV": -62.809648539822845
+        }
+      },
+      "fit_all_currents": {
+        "r0_ohm": 0.04275236744617395,
+        "r1_ohm": 0.027840688147375493,
+        "tau_s": 26.05773704056188,
+        "c1_F": 935.9587989572848,
+        "n_pulses_fit": 34,
+        "rmse_fit_windows_mV": 26.977921245883827,
+        "by_pulse_current": {
+          "3": {
+            "n": 9,
+            "rmse_mV": 20.698903130196808,
+            "end_of_pulse_err_median_mV": 14.57961752757031
+          },
+          "6": {
+            "n": 9,
+            "rmse_mV": 27.301130900668387,
+            "end_of_pulse_err_median_mV": 20.98557078985941
+          },
+          "12": {
+            "n": 9,
+            "rmse_mV": 27.239757473244104,
+            "end_of_pulse_err_median_mV": -14.526094064729378
+          },
+          "18": {
+            "n": 7,
+            "rmse_mV": 32.73982599530731,
+            "end_of_pulse_err_median_mV": -77.0963077526936
+          }
+        }
+      },
+      "rmse_per_pulse_global_params_mV": {
+        "median": 16.43018514995244,
+        "max": 66.2799038087959
+      },
+      "fulltest_rmse_mV": {
+        "all": 36.30522487860925,
+        "soc_ge_lo": 26.570373184643717,
+        "soc_ge_lo_loaded": 45.83887258828028,
+        "soc_ge_lo_rest": 18.1652217746679
+      }
+    }
+  }
+}

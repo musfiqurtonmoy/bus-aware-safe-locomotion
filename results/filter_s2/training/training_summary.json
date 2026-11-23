@@ -1,0 +1,38 @@
+{
+  "run": "filter_s2",
+  "episodes": 306,
+  "total_steps": 299710,
+  "episode_length_max": 1000,
+  "terminated_early": 9,
+  "first_episode_return": -46.204683,
+  "max_episode_return": 51.735468,
+  "last_block": {
+    "steps": [
+      269710,
+      299710
+    ],
+    "n": 30,
+    "mean": 49.644291266666656,
+    "std": 0.04925309091783862
+  },
+  "previous_block": {
+    "steps": [
+      239710,
+      269710
+    ],
+    "n": 30,
+    "mean": 49.59328633333334,
+    "std": 0.17082011086163656
+  },
+  "tail_slope": {
+    "steps": [
+      199710,
+      299710
+    ],
+    "n": 100,
+    "per_100k_steps": 0.014680145814581755,
+    "ci95_half_width_per_100k_steps": 0.2010397309389213
+  },
+  "plateau_rule": "95 % CI of the slope over the tail contains zero",
+  "plateaued": true
+}

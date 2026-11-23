@@ -1,0 +1,214 @@
+\section{Barrier-based power filter}\label{sec:filter}
+The filter keeps the bus within its limits while changing the drive currents as little as possible. Every \res{env_dtctrl_ms}~ms the policy sets joint position targets, and a proportional-derivative (PD) law turns them into desired q-axis currents $i_q^{\mathrm{des}}$ at every plant substep of length $\Delta t = \res{env_dtsim_ms}$~ms. At each substep the filter replaces $i_q^{\mathrm{des}}$ by the nearest currents, to within the tolerance of a bisection, that keep the bus within its limits at the end of the substep. It uses the bus voltage $\Vb^k$, the battery current $\Ib^k$ and the joint speeds $\dot q_i$ at the start of the substep, and the battery's electromotive force $E$ and series resistance $R_0$ (Section~\ref{sec:model}). Here we take $E$ and $R_0$ as known. Figure~\ref{fig:arch} shows the closed loop and the signals that each block uses.
+\begin{figure}[tbp]\centering\genfig{F4_architecture}{\linewidth}\caption{System architecture: closed loop with the barrier power filter. The policy sets joint position targets once per control step; the blocks inside the dashed frame run at every plant substep. The filter computes the power budget $\bar P$ from one bus step (Proposition~\ref{prop:budget}) and replaces the desired currents by the nearest currents within the drive limits that meet it \eqref{eq:qcqp}. It takes $E$ and $R_0$ from the plant (true-state filter) or from the battery EKF, whose confidence can scale the margins (Section~\ref{sec:estimator}).}\label{fig:arch}\end{figure}
+
+\subsection{Barrier conditions}
+Two barrier functions express the limits: $h_1 = \Vb - V_{\min}$ (V) and $h_2 = I_{\lim} - \Ib$ (A), where $V_{\min}$ is the undervoltage limit and $I_{\lim}$ the battery discharge-current limit. Following the discrete-time form of control barrier functions \cite{agrawal2017dcbf}, we require
+\begin{equation}
+h_j^{k+1} \ge (1-\gamma)\,h_j^k, \qquad j\in\{1,2\},\quad \gamma\in(0,1].
+\label{eq:dcbf}
+\end{equation}
+The condition is imposed for every $h_j^k$, including $h_j^k<0$: a state that is already outside a limit must return at least geometrically, at rate $\gamma$, rather than in a single step. If \eqref{eq:dcbf} holds at every step and $h_j^0\ge 0$, then $h_j^k \ge (1-\gamma)^k h_j^0 \ge 0$ for all $k$. In the implementation we tighten $V_{\min}$ and $I_{\lim}$ by margins $\delta_V,\delta_I\ge0$ (V, A). Condition~\eqref{eq:dcbf} for the tightened barriers $h_j-\delta_j$ implies it for $h_j$, since $h_j^{k+1} \ge (1-\gamma)(h_j^k-\delta_j)+\delta_j = (1-\gamma)h_j^k + \gamma\delta_j$.
+\subsection{Assumptions}
+The guarantee below holds for the discrete plant model of Section~\ref{sec:model} under the following assumptions.
+\begin{enumerate}
+\item[(A1)] \emph{Known battery and bus.} The filter uses the plant's $E$, $R_0$, $C$ and $\Delta t$. $E$ is constant over the substep: the battery's RC state is advanced after the bus step.
+\item[(A2)] \emph{Same drive power model.} The plant draws $P_i = a_i i_{q,i} + b\,i_{q,i}^2 + P_0$ \eqref{eq:power}, with $\dot q_i$ held at its value at the start of the substep, as the filter assumes. The current loop is ideal: the plant applies the commanded $i_{q,i}$.
+\item[(A3)] \emph{Physical bus state.} $E>0$, $\Vb^k \ge 0$ and $\max(\Vb^k, E) \le 2V_{c,\mathrm{off}}$, where $V_{c,\mathrm{off}}$ is the voltage at which the chopper duty starts to rise.
+\item[(A4)] \emph{Stable branch.} The plant's end-of-step voltage is the root of the bus step equation on the branch at or above its turning point (Lemma~\ref{lem:step}). A load larger than the bus can deliver is a collapse, which the plant resolves by reducing the drive currents.
+\item[(A5)] \emph{Charge limit.} At the plant's end-of-step voltage the battery current is not clamped by the charge limit $I_{\mathrm{chg}}$. This assumption is needed only for the converse (necessity) part of Proposition~\ref{prop:budget}; Remark~\ref{rem:charge} treats the clamped case.
+\item[(A6)] $R>0$, so $b=3R/2>0$, and every drive's current interval $[l_i,u_i]$ is non-empty. When the voltage circle and the current limits do not intersect, the model makes the interval non-empty by collapsing it to a single point (Section~\ref{sec:model}); the drive then applies a current that the inverter could not realise. In the evaluations this never occurred in filter mode; Section~\ref{sec:limits} reports how often it occurred in the other modes.
+\item[(A7)] \emph{Rounding.} The budget passed to the projection is lowered by $\varepsilon\,\rho$, with $\varepsilon=10^{\res{filt_eps_exp}}$ (our choice) and $\rho=\max\{|\bar P|,\,\beta^2/(4\alpha)\}$ ($\bar P$, $\alpha$, $\beta$ and $B$ are defined in Proposition~\ref{prop:budget}, \eqref{eq:budgetstep} and \eqref{eq:qcqp} below), so that the plant's separately recomputed load does not exceed $\bar P$ by a rounding error. The scale includes the largest deliverable power $\beta^2/(4\alpha)$, so the margin does not vanish when $\bar P$ is close to zero. A test found no load above the exact $\bar P$ on \res{test_budget_nstates} random states. The proofs below are carried out in exact arithmetic.
+\end{enumerate}
+
+\subsection{One bus step}
+The budget follows from one backward-Euler step of the bus. Let $g(V)=\chi(V)/R_c$ be the conductance of the averaged brake chopper, with $\chi$ the duty of Section~\ref{sec:model}. $g$ is continuous, non-negative and non-decreasing, and $g(V)=0$ for $V\le V_{c,\mathrm{off}}$. One backward-Euler step of \eqref{eq:bus} with the battery current unclamped and every term at the end-of-step voltage $V'=\Vb^{k+1}$ reads
+$C(V'-\Vb^k)/\Delta t = (E-V')/R_0 - P/V' - g(V')V'$, with $P$ the total load (W). Multiplying by $V'>0$ gives
+\begin{equation}
+P = F(V') := V'\,(\beta - \alpha V') - g(V')\,V'^2, \qquad \alpha = \frac{C}{\Delta t}+\frac{1}{R_0},\quad \beta = \frac{C\,\Vb^k}{\Delta t} + \frac{E}{R_0}.
+\label{eq:budgetstep}
+\end{equation}
+Here $\alpha$ and $\beta$ do not contain the chopper.
+\begin{lemma}\label{lem:step}
+Under (A3), let $x^\star = \beta/(2\alpha)$. Then $g(x^\star)=0$, $F(x^\star)=\beta^2/(4\alpha)$, and $F$ is continuous and strictly decreasing on $[x^\star,\infty)$ with $F(x)\to-\infty$ as $x\to\infty$. Hence for every $P\le \beta^2/(4\alpha)$ equation \eqref{eq:budgetstep} has exactly one root $V'(P)\ge x^\star$, and $V'(P)$ is strictly decreasing in $P$.
+\end{lemma}
+\begin{proof}
+$x^\star = \bigl((C/\Delta t)\,\Vb^k + E/R_0\bigr)/\bigl(2\,(C/\Delta t+1/R_0)\bigr)$ is half of a convex combination of $\Vb^k$ and $E$, so $0 < x^\star \le \max(\Vb^k,E)/2 \le V_{c,\mathrm{off}}$ by (A3), and $g(x^\star)=0$. Hence $F(x^\star) = x^\star(\beta-\alpha x^\star) = \beta^2/(4\alpha)$.
+The function $F_0(x)=x(\beta-\alpha x)$ has $F_0'(x) = \beta-2\alpha x < 0$ for $x>x^\star$, so it is strictly decreasing on $[x^\star,\infty)$. For $x>0$ the factors $g(x)$ and $x^2$ are non-negative and non-decreasing, so $g(x)x^2$ is non-decreasing and $-g(x)x^2$ is non-increasing. A strictly decreasing function plus a non-increasing one is strictly decreasing, so $F$ is strictly decreasing on $[x^\star,\infty)$. $F$ is continuous because $g$ is, and $F(x)\le F_0(x)\to-\infty$.
+For $P\le F(x^\star)$ the intermediate value theorem gives a root in $[x^\star,\infty)$, and strict monotonicity makes it unique. If $P_1<P_2$, then $F(V'(P_1)) < F(V'(P_2))$, which for a strictly decreasing $F$ means $V'(P_1)>V'(P_2)$.
+\end{proof}
+Moreover, $\beta^2/(4\alpha)$ is the maximum of $F$ over $(0,\infty)$. For $0<x\le x^\star$ we have $x\le x^\star\le V_{c,\mathrm{off}}$ (proof of Lemma~\ref{lem:step}), so $g(x)=0$ and $F(x)=F_0(x)$, and $F_0'(x)=\beta-2\alpha x\ge0$ there; hence $F$ is non-decreasing on $(0,x^\star]$. By Lemma~\ref{lem:step} it is strictly decreasing on $[x^\star,\infty)$, so $\max_{x>0}F(x)=F(x^\star)=\beta^2/(4\alpha)$. For a load $P>\beta^2/(4\alpha)$, equation \eqref{eq:budgetstep} therefore has no root at any positive voltage. By (A4), $V'(P)$ is the plant's end-of-step voltage, and $\beta^2/(4\alpha)$ is the largest load the bus can deliver in one substep.
+% (A3) is a sufficient condition for g(x*) = 0; it is counted at run time (leg_env a3_fail).
+
+\subsection{Power budget}
+\begin{proposition}\label{prop:budget}
+Under (A1)--(A5), let the required end-of-step voltage $V_{\mathrm{req}}$ (V) and the power budget $\bar P$ (W) be
+\begin{align*}
+V_{\mathrm{req}} &= \max\Bigl\{V_{\min}+(1-\gamma)h_1^k,\;\; E - R_0\bigl(I_{\lim}-(1-\gamma)h_2^k\bigr),\;\; x^\star\Bigr\},\\
+\bar P &:= F(V_{\mathrm{req}}) = V_{\mathrm{req}}\,\bigl(\beta-(\alpha + g(V_{\mathrm{req}}))\,V_{\mathrm{req}}\bigr).
+\end{align*}
+Then $\bar P\le\beta^2/(4\alpha)$, and for every load $P \le \beta^2/(4\alpha)$ both conditions \eqref{eq:dcbf} hold at step $k+1$ if and only if $P \le \bar P$.
+\end{proposition}
+\begin{proof}
+\emph{Barriers as voltage bounds.} Condition \eqref{eq:dcbf} for $j=1$ reads $V' \ge V_{\min}+(1-\gamma)h_1^k =: V_{\mathrm{uv}}$. For $j=2$ it reads $\Ib^{k+1} \le I_{\mathrm{allow}} := I_{\lim}-(1-\gamma)h_2^k$. By (A5), $\Ib^{k+1}=(E-V')/R_0$, which is strictly decreasing in $V'$, so the $j=2$ condition is equivalent to $V' \ge E - R_0 I_{\mathrm{allow}} =: V_{\mathrm{oc}}$. Both conditions together are therefore equivalent to $V'\ge V_b := \max(V_{\mathrm{uv}},V_{\mathrm{oc}})$.
+\emph{Budget.} $V_{\mathrm{req}} = \max(V_b, x^\star)\ge x^\star$, so $\bar P = F(V_{\mathrm{req}}) \le F(x^\star) = \beta^2/(4\alpha)$ by Lemma~\ref{lem:step}. Fix $P\le\beta^2/(4\alpha)$ and let $V'=V'(P)\ge x^\star$.
+\emph{Case $V_b \ge x^\star$}, so $V_{\mathrm{req}}=V_b$. $V'$ and $V_b$ both lie in $[x^\star,\infty)$, where $F$ is strictly decreasing. So $V'\ge V_b \iff F(V')\le F(V_b) \iff P\le\bar P$.
+\emph{Case $V_b < x^\star$}, so $V_{\mathrm{req}}=x^\star$ and $\bar P=\beta^2/(4\alpha)$. Then $V'\ge x^\star > V_b$, so both conditions hold, and $P\le\bar P$ holds as well. The equivalence holds trivially.
+\end{proof}
+The chopper enters $\bar P$ only through $g(V_{\mathrm{req}})$, evaluated at the required end-of-step voltage; the budget needs no chopper state from the start of the step. When the turning point $x^\star$ is the largest of the three terms, every deliverable load satisfies both conditions. Figure~\ref{fig:budget} shows Lemma~\ref{lem:step} and Proposition~\ref{prop:budget} at one state.
+\begin{figure}[tbp]\centering\genfig{F5_budget}{\linewidth}\caption{The bus step \eqref{eq:budgetstep} at one illustrative state: state of charge \res{figbud_soc}, RC-pair voltage zero (so $E$ is the pack's open-circuit voltage), battery current $\Ib^k=\res{figbud_ifrac}\,I_{\lim}$ and bus voltage $\Vb^k=E-R_0\Ib^k$, with the model parameters and the barrier rate and margins of the implementation. Left: $F(V')$, with its maximum $\beta^2/(4\alpha)$ at $x^\star$ (Lemma~\ref{lem:step}). Right, enlarged: the bounds on $V'$ from the tightened voltage and current barriers, $V_{\mathrm{req}}$ (here set by the current barrier) and the budget $\bar P=F(V_{\mathrm{req}})$. Loads $P\le\bar P$ (shaded) give $V'\ge V_{\mathrm{req}}$, so both barrier conditions hold (Proposition~\ref{prop:budget}). Open square: the load $\Vb^k\Ib^k$, which leaves the bus voltage unchanged.}\label{fig:budget}\end{figure}
+
+\begin{remark}[Charge limit]\label{rem:charge}
+Suppose (A5) fails: the battery current at the plant's end-of-step voltage is clamped at $-I_{\mathrm{chg}}$. Assume in addition $\Vb^k \le 2E + 2R_0 I_{\mathrm{chg}} + I_{\mathrm{chg}}\Delta t/C$. Then $P\le\bar P$ is still sufficient for both conditions, though no longer necessary.
+With the clamp, the plant solves $G(V')=P$ with $G(x) = x\max\{(E-x)/R_0,\,-I_{\mathrm{chg}}\} + (C/\Delta t)\,x(\Vb^k-x) - g(x)x^2 \ge F(x)$. Let $x_c = E+R_0I_{\mathrm{chg}}$, the voltage above which the clamp is active.
+For $x\ge x_c$, $G(x) = G_0(x) - g(x)x^2$ with the quadratic $G_0(x) = x\bigl((C/\Delta t)\,\Vb^k - I_{\mathrm{chg}} - (C/\Delta t)\,x\bigr)$. Its vertex is $t_c = \bigl((C/\Delta t)\,\Vb^k - I_{\mathrm{chg}}\bigr)/(2C/\Delta t)$, and the extra bound on $\Vb^k$ is equivalent to $t_c\le x_c$. So $G_0$ is strictly decreasing on $[x_c,\infty)$. As in Lemma~\ref{lem:step}, $-g(x)x^2$ is non-increasing; no derivative of $g$, which has kinks, is needed. So $G$ is strictly decreasing on $[x_c,\infty)$.
+If $x_c\ge x^\star$, then $G=F$ on $[x^\star,x_c]$, which is strictly decreasing by Lemma~\ref{lem:step}. $G$ is continuous at $x_c$, so it is strictly decreasing on $[x^\star,\infty)$.
+If $x_c<x^\star$, then $[x^\star,\infty)\subset[x_c,\infty)$, and the same conclusion follows from the clamped piece alone, under the same bound.
+Let $x_u$ solve $F(x_u)=P$ and $x_p$ solve $G(x_p)=P$, both $\ge x^\star$. $x_p$ exists because $G(x^\star)\ge F(x^\star)\ge P$ and $G(x)\to-\infty$. Then $G(x_u)\ge F(x_u) = P = G(x_p)$, so $x_p\ge x_u\ge V_b$, and the voltage condition holds.
+For the current condition: if the clamp is inactive at $x_p$, then $\Ib^{k+1} = (E-x_p)/R_0 \le (E-x_u)/R_0 \le I_{\mathrm{allow}}$. If it is active, then $\Ib^{k+1}=-I_{\mathrm{chg}}$. Since the plant keeps $\Ib^k\ge -I_{\mathrm{chg}}$, we have $I_{\mathrm{allow}} = \gamma I_{\lim} + (1-\gamma)\Ib^k \ge \gamma I_{\lim} - (1-\gamma)I_{\mathrm{chg}} = -I_{\mathrm{chg}} + \gamma(I_{\lim}+I_{\mathrm{chg}})$. Because $\gamma(I_{\lim}+I_{\mathrm{chg}})>0$, this gives $I_{\mathrm{allow}} > -I_{\mathrm{chg}} = \Ib^{k+1}$.
+\end{remark}
+
+\subsection{Projection onto the budget}
+Given the budget, the filter finds the nearest currents that meet it. Each drive $i$ can realise only $i_{q,i}\in[l_i,u_i]$: the intersection of $|i_{q,i}|\le I_{\max}$ with the interval on which the voltage circle $v_{d,i}^2+v_{q,i}^2 \le (\Vb^k)^2/3$ holds at the measured $\dot q_i$, as in the drive model. With $n$ drives, the power (W) left for the drives' current-dependent terms is $B := \bar P - \varepsilon\rho - nP_0 - P_{\mathrm{aux}}$, where $\varepsilon\rho$ is the rounding margin of (A7). The filter solves
+\begin{equation}
+\min_{i_q}\ \|i_q - i_q^{\mathrm{des}}\|^2 \quad \text{s.t.}\quad \phi(i_q) := \sum_i \left(a_i i_{q,i} + b\, i_{q,i}^2\right) \le B, \qquad l_i \le i_{q,i} \le u_i .
+\label{eq:qcqp}
+\end{equation}
+Dualising only the power constraint with a multiplier $\lambda\ge0$ gives $\mathcal{L}(i_q,\lambda) = \|i_q-i_q^{\mathrm{des}}\|^2 + \lambda(\phi(i_q)-B)$. This Lagrangian separates by joint, and each joint minimises a convex quadratic in one variable over its interval, so
+\begin{equation}
+i_{q,i}(\lambda) = \operatorname{clip}\!\left(\frac{i^{\mathrm{des}}_{q,i} - \tfrac{\lambda}{2}a_i}{1+\lambda b},\; l_i,\; u_i\right).
+\label{eq:clipped}
+\end{equation}
+Let $x_{\min,i} = \operatorname{clip}(-a_i/(2b), l_i, u_i)$ and $\phi_{\min} = \phi(x_{\min})$.
+\begin{lemma}\label{lem:proj}
+Under (A6):
+\begin{enumerate}
+\item[(a)] $x_{\min}$ is the unique minimiser of $\phi$ over the box. If $\phi_{\min}\le B$, problem \eqref{eq:qcqp} has a unique solution $i_q^{\mathrm{opt}}$; if $\phi_{\min}>B$, it has no feasible point.
+\item[(b)] For each $\lambda\ge0$, \eqref{eq:clipped} is the unique minimiser of $\mathcal{L}(\cdot,\lambda)$ over the box.
+\item[(c)] $\varphi(\lambda) := \phi(i_q(\lambda))$ is continuous and non-increasing on $[0,\infty)$, and $i_q(\lambda)\to x_{\min}$ as $\lambda\to\infty$.
+\item[(d)] If $\lambda^\star\ge0$ satisfies $\varphi(\lambda^\star)\le B$ and $\lambda^\star(\varphi(\lambda^\star)-B)=0$, then $i_q(\lambda^\star) = i_q^{\mathrm{opt}}$.
+\end{enumerate}
+\end{lemma}
+\begin{proof}
+(a) Each term $a_i x + b x^2$ is strictly convex in $x$ because $b>0$. Its minimum over $[l_i,u_i]$ is therefore attained only at the projection of the vertex $-a_i/(2b)$ onto the interval, which is $x_{\min,i}$, so $x_{\min}$ is the unique minimiser of $\phi$ over the box. The feasible set of \eqref{eq:qcqp} is a sublevel set of a convex function intersected with a box: it is convex and compact, and non-empty exactly when $\phi_{\min}\le B$. The objective is strictly convex, so a non-empty feasible set gives a unique minimiser.
+(b) For fixed $\lambda$, joint $i$ minimises $(1+\lambda b)x^2 - (2i^{\mathrm{des}}_{q,i} - \lambda a_i)x$ over $[l_i,u_i]$. This is a strictly convex quadratic, so its minimiser is the clip of its vertex, given in \eqref{eq:clipped}.
+(c) $i_q(\lambda)$ is continuous in $\lambda$ as a composition of continuous maps, and so is $\varphi$. Take $0\le\lambda_1<\lambda_2$ with minimisers $x_1=i_q(\lambda_1)$ and $x_2=i_q(\lambda_2)$. By (b), $\mathcal{L}(x_1,\lambda_1)\le \mathcal{L}(x_2,\lambda_1)$ and $\mathcal{L}(x_2,\lambda_2)\le \mathcal{L}(x_1,\lambda_2)$. Adding the two inequalities cancels the distance terms and the $B$ terms, leaving $(\lambda_2-\lambda_1)\bigl(\phi(x_2)-\phi(x_1)\bigr)\le0$, so $\varphi(\lambda_2)\le\varphi(\lambda_1)$. As $\lambda\to\infty$, $(i^{\mathrm{des}}_{q,i}-\lambda a_i/2)/(1+\lambda b)\to -a_i/(2b)$, and continuity of the clip gives $i_q(\lambda)\to x_{\min}$.
+(d) Let $x$ be feasible for \eqref{eq:qcqp}. Then $\lambda^\star(\phi(x)-B)\le0$, so $\|x-i_q^{\mathrm{des}}\|^2 \ge \mathcal{L}(x,\lambda^\star) \ge \mathcal{L}(i_q(\lambda^\star),\lambda^\star) = \|i_q(\lambda^\star)-i_q^{\mathrm{des}}\|^2$, using (b) and complementary slackness. $i_q(\lambda^\star)$ is feasible, so it is optimal, and by (a) it equals $i_q^{\mathrm{opt}}$.
+\end{proof}
+The filter evaluates $\varphi(0)$ and $\phi_{\min}$ and reports one of three outcomes.
+\emph{Inactive}: $\varphi(0)\le B$. Then $i_q(0)=\operatorname{clip}(i_q^{\mathrm{des}},l,u)$ is applied; by Lemma~\ref{lem:proj}(d) with $\lambda^\star=0$, it is the solution.
+\emph{Active}: $\varphi(0)>B\ge\phi_{\min}$. Starting from the bracket $[0,1]$, the filter doubles the upper end of $\lambda$ until $\varphi(\lambda_{\mathrm{hi}})\le B$ (at most \res{filt_maxdoublings} doublings). It then halves the bracket \res{filt_halvings} times, keeping the invariant $\varphi(\lambda_{\mathrm{lo}})>B\ge\varphi(\lambda_{\mathrm{hi}})$, and returns $i_q(\lambda_{\mathrm{hi}})$.
+The returned currents therefore lie in the box and satisfy the budget exactly, $\phi\le B$. They are optimal to within the bisection tolerance. Let $\lambda^\star=\inf\{\lambda\ge0:\varphi(\lambda)\le B\}$. By continuity $\varphi(\lambda^\star)=B$, so $i_q(\lambda^\star)=i_q^{\mathrm{opt}}$ by (d), and the invariant gives $\lambda_{\mathrm{lo}}<\lambda^\star\le\lambda_{\mathrm{hi}}$.
+The bracket after doubling is $[0,1]$ or $[\lambda_{\mathrm{lo}},2\lambda_{\mathrm{lo}}]$ with $\lambda_{\mathrm{lo}}<\lambda^\star$. Its width is therefore at most $\max\{1,\lambda^\star\}$, and after the halvings $0\le\lambda_{\mathrm{hi}}-\lambda^\star\le 2^{-\res{filt_halvings}}\max\{1,\lambda^\star\}$.
+The unclipped argument of \eqref{eq:clipped} has derivative $-(a_i/2 + b\,i^{\mathrm{des}}_{q,i})/(1+\lambda b)^2$ in $\lambda$, and the clip does not increase distances. Hence $|i_{q,i}(\lambda_{\mathrm{hi}})-i^{\mathrm{opt}}_{q,i}| \le (|a_i|/2+b\,|i^{\mathrm{des}}_{q,i}|)\,2^{-\res{filt_halvings}}\max\{1,\lambda^\star\}$.
+If the doubling does not bracket $\lambda^\star$ (in exact arithmetic this happens only when $\phi_{\min}=B$ is reached only in the limit), the filter returns $x_{\min}$. That is then the only feasible point and hence the solution.
+\emph{Infeasible}: $\phi_{\min}>B$. No currents in the box meet the budget, and the filter applies $x_{\min}$ as a best effort.
+
+\subsection{Closed-loop guarantee}
+\begin{corollary}\label{cor:closed}
+Under (A1)--(A7), whenever the filter's outcome at step $k$ is inactive or active, the plant's load satisfies $P\le\bar P\le\beta^2/(4\alpha)$. Both conditions \eqref{eq:dcbf} then hold at step $k+1$ and the bus does not collapse. If moreover $h_j^0\ge0$ and every step is inactive or active, then $h_j^k\ge0$ for all $k$.
+In an infeasible step with $\phi_{\min}+nP_0+P_{\mathrm{aux}}\le\beta^2/(4\alpha)$, the applied currents $x_{\min}$ give the largest end-of-step voltage, and hence the largest $h_1^{k+1}$ and $h_2^{k+1}$, that any currents in the box can achieve.
+\end{corollary}
+\begin{proof}
+By (A2) the plant's load is $P = \phi(i_q) + nP_0 + P_{\mathrm{aux}} \le B + nP_0 + P_{\mathrm{aux}} = \bar P - \varepsilon\rho \le \bar P$, and $\bar P\le\beta^2/(4\alpha)$ by Proposition~\ref{prop:budget}. So no collapse occurs, and Proposition~\ref{prop:budget} gives \eqref{eq:dcbf}; forward invariance follows as in the barrier subsection.
+In an infeasible step, $x_{\min}$ minimises $\phi$, and so $P$, over the box (Lemma~\ref{lem:proj}(a)). Any load from the box that the bus can deliver is therefore at least $P(x_{\min})$. By Lemma~\ref{lem:step}, a smaller load gives a higher $V'$, and both $h_1^{k+1}=V'-V_{\min}$ and $h_2^{k+1}=I_{\lim}-\max\{(E-V')/R_0,-I_{\mathrm{chg}}\}$ are non-decreasing in $V'$. If a load from the box exceeds $\beta^2/(4\alpha)$, the plant collapses to $V'=x^\star$, which is not above $V'(P(x_{\min}))$.
+\end{proof}
+The guarantee holds for the discrete model of Section~\ref{sec:model}, one substep at a time. It does not cover current-loop lag, errors in $E$ or $R_0$, or the difference between the averaged and the switching-level drive; these are examined in Section~\ref{sec:model} (validation) and in Section~\ref{sec:stress}.
+\begin{remark}[Sensitivity of the current barrier to model error]\label{rem:sens}
+Suppose the filter uses $\hat E = E+\delta E$ and $\hat R_0 = R_0+\delta R_0$ instead of the plant's values in (A1). When the current barrier sets $V_{\mathrm{req}}$, the filter keeps the battery current it predicts at the end of the step, $(\hat E - V')/\hat R_0$, at or below $I_{\mathrm{allow}}$. At the same $V'$ the plant's battery current is $(E-V')/R_0$. To first order in $\delta E$ and $\delta R_0$ the two differ by
+\begin{equation}
+\begin{split}
+\delta I &= \frac{E-V'}{R_0}-\frac{\hat E-V'}{\hat R_0} \approx -\frac{\delta E}{R_0} + \frac{(E-V')\,\delta R_0}{R_0^2},\\
+|\delta I| &\lesssim \frac{|\delta E|}{R_0} + \frac{|E-V'|\,|\delta R_0|}{R_0^2}.
+\end{split}
+\label{eq:sens}
+\end{equation}
+At the current limit $E-V' \approx R_0 I_{\mathrm{allow}} \le R_0 I_{\lim}$. For estimation errors bounded by $|\delta E|\le\Delta_E$ and $|\delta R_0|\le\Delta_R$, a current margin
+\begin{equation}
+\delta_I \ \ge\ \frac{\Delta_E}{R_0} + \frac{I_{\lim}\,\Delta_R}{R_0}
+\label{eq:marginrule}
+\end{equation}
+therefore keeps the plant's battery current below $I_{\lim}$ to first order. The rule does not include the second effect of the model error: the plant's end-of-step voltage also differs from the one the filter predicts. Because $E$ is much larger than $R_0 I_{\lim}$, a relative error in $E$ needs far more margin than the same relative error in $R_0$.
+
+Table~\ref{tab:sens} compares the rule with the evaluations of the true-state filter under estimation noise of scale $\sigma$ (Section~\ref{sec:stress}). In these evaluations the filter receives $\hat E = E\,(1+\sigma n_1)$ and $\hat R_0 = R_0\,(1+\sigma n_2)$ at every substep. Here $E$ is the plant's electromotive force at the start of the substep, $R_0$ the model's series resistance (equal to the plant's in these runs), and $n_1$, $n_2$ are independent standard normal draws, taken anew at every substep. These errors have no finite bound, so we choose $\Delta_E$ and $\Delta_R$ in \eqref{eq:marginrule} as multiples of the noise scale, $\Delta_E = \kappa\sigma E$ and $\Delta_R = \kappa\sigma R_0$. With $E-V' = R_0(I_{\lim}-\delta_I)$, \eqref{eq:sens} then bounds the overshoot of the battery current above $I_{\lim}-\delta_I=\res{sens_itarget}$~A, the current the filter aims at, by $\kappa\sigma\bigl(E/R_0 + I_{\lim}-\delta_I\bigr)$. We take $E$ as the pack's open-circuit voltage at the episode's starting state of charge and $R_0=\res{sens_r0}~\Omega$. The observed overshoot is the per-episode peak battery current minus $I_{\lim}-\delta_I$. The table gives the rule for $\kappa=1$ and, for each case, the ratio of the largest observed overshoot to it: the smallest $\kappa$ for which the rule bounds that case. The rule bounds all \res{sens_ncases} largest observed overshoots for $\kappa \ge \res{sens_kall}$. The $E$ term dominates: at $\sigma=\res{set_noise_lo}$ and state of charge 1.0 it is \res{sens_rulee_n0.02_soc1}~A for $\kappa=1$, against \res{sens_ruler_n0.02_soc1}~A for the $R_0$ term. The margin $\delta_I=\res{env_margini}$~A is too small for these noise levels. The rule with $\kappa=1$ exceeds it in all \res{sens_ncases} cases, and the battery current exceeded $I_{\lim}$ in \res{sens_noc} of them. This independent noise is a harsher error model than a filtered estimate, whose error is smaller and changes slowly, but it has no persistent bias.
+\end{remark}
+\begin{table}[tbp]\centering\caption{Current-barrier sensitivity rule \eqref{eq:sens} with error bounds equal to the noise scale ($\kappa=1$), against the observed overshoot of the battery current above $I_{\lim}-\delta_I$. Warm-started filter policies in filter mode, true-state filter with estimation noise $\sigma$, \res{n_seeds} seeds $\times$ \res{eval_eps_set} episodes per state of charge. Overshoot: mean $\pm$ std over seeds of the per-episode peak; largest: over all episodes; $\kappa$ needed: largest overshoot divided by the rule for $\kappa=1$.}\label{tab:sens}
+\gentable{tab_est_noise_rule}
+\end{table}
+
+\subsection{Implementation}
+We run the filter at every substep with $\gamma=\res{env_gamma}$ and margins $\delta_V=\res{env_marginv}$~V and $\delta_I=\res{env_margini}$~A. These are design choices, not taken from a source; Section~\ref{sec:ablation} varies both. One call evaluates the budget and solves \eqref{eq:qcqp} by bisection in Python; Algorithm~\ref{alg:filter} lists it, in the order of the implementation.
+\begin{algorithm}[tbp]
+\caption{Barrier power filter, one plant substep $k$}\label{alg:filter}
+\begin{algorithmic}[1]
+\Require $\Vb^k$, $\Ib^k$, joint speeds $\dot q$, desired currents $i_q^{\mathrm{des}}$; $E$, $R_0$ (true-state filter) or $\hat E$, $\hat R_0$ and confidence $\zeta$ (EKF, Section~\ref{sec:estimator}); $\gamma$, fixed margins $\delta_V^0$, $\delta_I^0$
+\Ensure commanded currents $i_q$ and the outcome (inactive, active or infeasible)
+\State $\delta_V\gets\delta_V^0$, $\delta_I\gets\delta_I^0$; with confidence-scaled margins, $\delta_V\gets\delta_V^0+(1-\zeta)(\delta_V^{\max}-\delta_V^0)$ and $\delta_I\gets\delta_I^0+(1-\zeta)(\delta_I^{\max}-\delta_I^0)$ \Comment{\eqref{eq:confmargin}}
+\State $V_{\mathrm{uv}}\gets V_{\min}+\delta_V+(1-\gamma)\,(\Vb^k-V_{\min}-\delta_V)$ \Comment{voltage barrier}
+\State $I_{\mathrm{allow}}\gets I_{\lim}-\delta_I-(1-\gamma)\,(I_{\lim}-\delta_I-\Ib^k)$ \Comment{current barrier}
+\State $V_{\mathrm{oc}}\gets E-R_0 I_{\mathrm{allow}}$
+\State $\alpha\gets C/\Delta t+1/R_0$, \ $\beta\gets C\Vb^k/\Delta t+E/R_0$, \ $x^\star\gets\beta/(2\alpha)$ \Comment{\eqref{eq:budgetstep}}
+\State $V_{\mathrm{req}}\gets\max\{V_{\mathrm{uv}},V_{\mathrm{oc}},x^\star\}$ \Comment{Proposition~\ref{prop:budget}}
+\State $\bar P\gets V_{\mathrm{req}}\bigl(\beta-(\alpha+g(V_{\mathrm{req}}))V_{\mathrm{req}}\bigr)$
+\State $B\gets\bar P-\varepsilon\max\{|\bar P|,\beta^2/(4\alpha)\}-nP_0-P_{\mathrm{aux}}$ \Comment{(A7)}
+\State $[l_i,u_i]\gets$ current limit and voltage circle at $\Vb^k$, $\dot q_i$ \Comment{Section~\ref{sec:drive}}
+\State $a_i\gets Nk_t\dot q_i$, $b\gets 3R/2$ \Comment{\eqref{eq:power}}
+\State $i_q(\lambda):=\operatorname{clip}\bigl((i_q^{\mathrm{des}}-\lambda a/2)/(1+\lambda b),\,l,\,u\bigr)$ \Comment{\eqref{eq:clipped}}
+\If{$\phi(i_q(0))\le B$} \Return $i_q(0)$, inactive \EndIf
+\State $x_{\min}\gets\operatorname{clip}(-a/(2b),\,l,\,u)$
+\If{$\phi(x_{\min})>B$} \Return $x_{\min}$, infeasible \EndIf
+\State $\lambda_{\mathrm{lo}}\gets0$, $\lambda_{\mathrm{hi}}\gets1$
+\For{at most \res{filt_maxdoublings} times}
+  \If{$\phi(i_q(\lambda_{\mathrm{hi}}))\le B$} \textbf{break} \EndIf
+  \State $\lambda_{\mathrm{lo}}\gets\lambda_{\mathrm{hi}}$, $\lambda_{\mathrm{hi}}\gets2\lambda_{\mathrm{hi}}$
+\EndFor
+\If{no bracket was found} \Return $x_{\min}$, active \EndIf
+\For{\res{filt_halvings} times}
+  \State $\lambda_{\mathrm{m}}\gets(\lambda_{\mathrm{lo}}+\lambda_{\mathrm{hi}})/2$
+  \If{$\phi(i_q(\lambda_{\mathrm{m}}))>B$} $\lambda_{\mathrm{lo}}\gets\lambda_{\mathrm{m}}$ \Else\ $\lambda_{\mathrm{hi}}\gets\lambda_{\mathrm{m}}$ \EndIf
+\EndFor
+\State \Return $i_q(\lambda_{\mathrm{hi}})$, active
+\end{algorithmic}
+\end{algorithm} On the central processing unit (CPU) used for training it took \res{filt_us_mean}~\textmu s on average and \res{filt_us_p99}~\textmu s at the 99th percentile, on the states visited by a trained policy.
+
+\subsection{Estimated battery parameters}\label{sec:estimator}
+On hardware $E$ and $R_0$ are not measured and must be estimated. To relax (A1) for these two quantities, the filter can take them from an extended Kalman filter (EKF) that runs on the measured bus voltage and battery current, in the manner of EKF state and parameter estimation for battery management systems \cite{plett2004ekf3}. Its state is $x=[s,\,v_1,\,R_0]$: state of charge, RC-pair voltage and series resistance. The measured battery current $\tilde I$ is its input. Per substep, the state of charge follows by coulomb counting, $v_1$ by the exact discretisation of the RC pair used in the plant, and $R_0$ as a random walk. The measurement is the battery's terminal relation of \eqref{eq:bus},
+\begin{equation}
+\tilde V = n_s V_{\mathrm{ocv}}(s) - v_1 - R_0\,\tilde I + \xi ,
+\label{eq:ekfmeas}
+\end{equation}
+with $n_s$ the number of cells in series and $\xi$ the measurement noise. This relation does not hold while the charge limit clamps the battery current, so the update is skipped when $\tilde I$ is within three standard deviations of $-I_{\mathrm{chg}}$. We model the sensors as white Gaussian noise of standard deviation $\sigma_v=\res{par_sigv}$~V on the bus voltage and $\sigma_i=\res{par_sigi}$~A on the battery current; both values are assumptions (Table~\ref{tab:params}). We initialise the state of charge from the measured rest voltage and $R_0$ from the model's value, with a prior standard deviation of $\res{ekf_sdr0rel}\times$ the model's value, and keep the estimate of $R_0$ at or above \res{ekf_r0floor} times the model's value; the prior and this floor are our choices. The filter then uses $\hat E = n_s V_{\mathrm{ocv}}(\hat s)-\hat v_1$ and $\hat R_0$ in place of $E$ and $R_0$ in $\alpha$, $\beta$ and $V_{\mathrm{req}}$; we call this the EKF filter. The bus capacitance, the substep, the chopper and the drive power model remain known as in (A1) and (A2). Corollary~\ref{cor:closed} does not extend to estimated values; Remark~\ref{rem:sens} gives the first-order effect of their errors.
+
+\emph{Confidence-scaled margins.} For a consistent EKF the normalised innovation squared, $\mathrm{NIS}=\nu^2/S$ with innovation $\nu$ and its predicted variance $S$, has expected value one \cite{barshalom2001estimation}. Its mean $\overline{\mathrm{NIS}}$ over the last \res{ekf_window} updates (\res{ekf_window_ms}~ms) gives the confidence
+\begin{equation}
+\zeta = \operatorname{clip}\!\left(\frac{\res{ekf_nishi}-\overline{\mathrm{NIS}}}{\res{ekf_nishi}-\res{ekf_nislo}},\;0,\;1\right),
+\label{eq:conf}
+\end{equation}
+and the margins are scaled between their fixed values and \res{env_marginratio} times those values,
+\begin{equation}
+\delta_V = \delta_V^0 + (1-\zeta)\,(\delta_V^{\max}-\delta_V^0), \qquad \delta_I = \delta_I^0 + (1-\zeta)\,(\delta_I^{\max}-\delta_I^0),
+\label{eq:confmargin}
+\end{equation}
+with $\delta_V^0=\res{env_marginv}$~V, $\delta_V^{\max}=\res{env_marginvmax}$~V, $\delta_I^0=\res{env_margini}$~A and $\delta_I^{\max}=\res{env_marginimax}$~A. We chose the thresholds in \eqref{eq:conf} and the margin range by tuning; they are not derived from a bound on the estimation error.
+
+\subsection{Training with the filter in the loop}
+In filter mode the filter acts during training as well as in evaluation. At every substep the policy's desired currents pass through the filter before they reach the drives, so the transitions from which SAC learns are those of the filtered closed loop, and the reward \eqref{eq:reward} contains a penalty on the size of the filter's correction. A policy trained in this way can therefore learn motions that the filter needs to correct less. A policy trained without the filter can also run with the test-time filter; Section~\ref{sec:results} compares the two. We train with the true-state filter and use the EKF filter only in evaluation, with the same policies. Algorithm~\ref{alg:train} gives one training run in filter mode; the training settings are in Section~\ref{sec:setup}.
+\begin{algorithm}[tbp]
+\caption{SAC training with the filter in the loop (filter mode)}\label{alg:train}
+\begin{algorithmic}[1]
+\Require initial policy $\pi$ (new, or the baseline policy of the same seed for a warm start); $T$ environment steps, of which the first $T_0$ fill the replay buffer; observation $o_t$, action $\mathbf a_t$, action scale $\kappa_a$, joint position targets $q^{\mathrm{des}}$ and stand pose $q_{\mathrm{stand}}$, PD gains $k_p$, $k_d$, substeps $n_{\mathrm{sub}}$, reward $r_t$ with its mode term $c_t$ \eqref{eq:reward}, weight $w_f$ and peak phase current $I_{\mathrm{ph}}$ as in Section~\ref{sec:setup}
+\State empty replay buffer $\mathcal D$; reset: stand pose with uniform joint offsets, state of charge drawn uniformly from its training range
+\For{$t=1,\dots,T$}
+  \If{$t\le T_0$ and $\pi$ is new} draw $\mathbf a_t$ uniformly from $[-1,1]^2$ \Else\ draw $\mathbf a_t\sim\pi(\cdot\mid o_t)$ \EndIf
+  \State $q^{\mathrm{des}}\gets q_{\mathrm{stand}}+\kappa_a\mathbf a_t$; \ $D\gets0$
+  \For{each of the $n_{\mathrm{sub}}$ substeps}
+    \State $i_q^{\mathrm{des}}\gets\operatorname{clip}\bigl((k_p(q^{\mathrm{des}}-q)-k_d\dot q)/(Nk_t),\,\pm I_{\max}\bigr)$ \Comment{PD law}
+    \State $i_q\gets$ Algorithm~\ref{alg:filter}; \ $D\gets D+\|i_q-\operatorname{clip}(i_q^{\mathrm{des}},l,u)\|^2$
+    \State drives draw $\sum_iP_i+P_{\mathrm{aux}}$ \eqref{eq:power}; bus step \eqref{eq:bus} by backward Euler (with collapse scaling); battery state update; torques $\tau_i=Nk_t i_{q,i}$ applied in MuJoCo
+  \EndFor
+  \State $r_t\gets$ \eqref{eq:reward} with $c_t=w_f D/(n_{\mathrm{sub}}I_{\mathrm{ph}})$; store $(o_t,\mathbf a_t,r_t,o_{t+1})$ in $\mathcal D$
+  \If{$t>T_0$} one SAC gradient step on a batch from $\mathcal D$ (critics, actor, entropy coefficient, target networks) \EndIf
+  \If{fall or end of episode} reset \EndIf
+\EndFor
+\end{algorithmic}
+\end{algorithm}

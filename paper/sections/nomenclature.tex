@@ -1,0 +1,57 @@
+Vectors over the drives are written without the index $i$ (e.g.\ $i_q$); a superscript $k$ marks the value at the start of plant substep $k$.
+
+{\small\setlength{\tabcolsep}{4pt}\renewcommand{\arraystretch}{1.05}
+\begin{longtable}{@{}>{\raggedright\arraybackslash}p{0.14\linewidth}>{\raggedright\arraybackslash}p{0.32\linewidth}>{\raggedright\arraybackslash}p{0.14\linewidth}>{\raggedright\arraybackslash}p{0.32\linewidth}@{}}
+\caption{Nomenclature: symbols and acronyms of the manuscript, with units.}\label{tab:nomen}\\
+\multicolumn{4}{@{}l}{\emph{Acronyms}}\\
+CBF & control barrier function & PI & proportional-integral \\
+CPU & central processing unit & PMSM & permanent-magnet synchronous motor \\
+DC & direct current & PWM & pulse-width modulation \\
+EKF & extended Kalman filter & RC & resistor--capacitor \\
+NIS & normalised innovation squared & SAC & soft actor-critic \\
+PD & proportional-derivative & SOC & state of charge \\
+PID & proportional-integral-derivative & & \\[3pt]
+\multicolumn{4}{@{}l}{\emph{Drives}}\\
+$N$ & gear ratio & $p$ & pole pairs \\
+$\psi$ & flux linkage (Wb) & $k_t$ & motor torque constant (N\,m/A) \\
+$R$, $L$ & phase resistance ($\Omega$), inductance (H) & $q_i$, $\dot q_i$ & joint angle (rad), speed (rad/s) \\
+$\omega_{e,i}$ & electrical angular speed (rad/s) & $i_{q,i}$, $i_d$ & q- and d-axis currents (A) \\
+$v_{q,i}$, $v_{d,i}$ & q- and d-axis voltages (V) & $\tau_i$ & joint output torque (N\,m) \\
+$I_{\max}$ & drive current limit (A) & $[l_i,u_i]$ & admissible q-axis currents (A) \\
+$I_{\mathrm{ph}}$ & peak phase current (A) & $\tau_{\max}$ & peak output torque (N\,m) \\
+$P_i$ & electrical power of drive $i$ (W) & $a_i$, $b$ & power coefficients (V, $\Omega$) \\
+$P_0$ & idle power per drive (W) & $n$ & number of drives \\[3pt]
+\multicolumn{4}{@{}l}{\emph{Battery and bus}}\\
+$s$ & state of charge & $V_{\mathrm{ocv}}(s)$ & open-circuit voltage of a cell (V) \\
+$n_s$ & cells in series & $E$ & electromotive force (V) \\
+$R_0$ & series resistance ($\Omega$) & $R_1$, $C_1$ & RC pair ($\Omega$, F) \\
+$v_1$ & RC-pair voltage (V) & $C$ & DC-link capacitance (F) \\
+$\Vb$ & bus voltage (V) & $\Ib$ & battery current (A) \\
+$P_{\mathrm{aux}}$ & auxiliary load (W) & $I_{\mathrm{chg}}$ & charge-current limit (A) \\
+$\chi$ & brake-chopper duty & $R_c$ & brake resistor ($\Omega$) \\
+$V_{c,\mathrm{off}}$, $V_{c,\mathrm{on}}$ & chopper duty 0 and 1 (V) & $g(V)$ & chopper conductance (S) \\
+$V_{\min}$ & undervoltage limit (V) & $I_{\lim}$ & discharge-current limit (A) \\
+$V_{\max}$ & overvoltage limit (V) & $\Delta t$ & plant substep (s) \\[3pt]
+\multicolumn{4}{@{}l}{\emph{Filter and estimator}}\\
+$h_1$, $h_2$ & voltage and current barriers (V, A) & $\gamma$ & barrier rate \\
+$\delta_V$, $\delta_I$ & voltage and current margins (V, A) & $\delta^0$, $\delta^{\max}$ & fixed and largest margin \\
+$V'$ & end-of-step bus voltage (V) & $\alpha$, $\beta$ & bus-step coefficients (S, A) \\
+$F(V')$ & load of one bus step (W) & $x^\star$ & turning point of $F$ (V) \\
+$V_{\mathrm{uv}}$, $V_{\mathrm{oc}}$ & bounds on $V'$ from $h_1$, $h_2$ (V) & $I_{\mathrm{allow}}$ & allowed battery current (A) \\
+$V_{\mathrm{req}}$ & required end-of-step voltage (V) & $\bar P$ & power budget (W) \\
+$\varepsilon$, $\rho$ & rounding margin and its scale & $B$ & budget for the drives' current terms (W) \\
+$\phi(i_q)$ & current-dependent drive power (W) & $\lambda$, $\mathcal L$ & projection multiplier, Lagrangian \\
+$x_{\min}$ & currents of least power in the box (A) & $\hat E$, $\hat R_0$ & estimates of $E$, $R_0$ \\
+$\sigma$, $\kappa$ & noise scale, its multiple & $\Delta_E$, $\Delta_R$ & bounds on the errors of $\hat E$, $\hat R_0$ \\
+$\xi$ & voltage measurement noise (V) & $\sigma_v$, $\sigma_i$ & sensor noise (V, A) \\
+$\nu$, $S$ & innovation, its variance & $\zeta$ & EKF confidence \\[3pt]
+\multicolumn{4}{@{}l}{\emph{Learning}}\\
+$o_t$, $\mathbf a_t$ & observation, action at step $t$ & $\kappa_a$ & action scale (rad) \\
+$q^{\mathrm{des}}$, $q_{\mathrm{stand}}$ & position targets, stand pose (rad) & $k_p$, $k_d$ & PD gains \\
+$i_q^{\mathrm{des}}$, $i_q^{\mathrm{cmd}}$ & desired, commanded currents (A) & $z$ & rail height above the stand (m) \\
+$r_t$, $c_t$ & reward, its mode-dependent term & $w$, $w_f$ & penalty and correction weights \\
+$n_{\mathrm{sub}}$ & substeps per control step & $n_{\mathrm{uv}}$, $n_{\mathrm{oc}}$ & substeps with undervoltage, overcurrent \\
+$\pi$ & policy & & \\
+$\ell_t$, $\bar\ell$ & SAC-Lagrangian cost, episode mean & $\mu$, $\eta$, $d$ & multiplier, its step size, cost limit \\
+$T$, $T_0$ & training steps, buffer-filling steps & $\mathcal D$ & replay buffer \\
+\end{longtable}}

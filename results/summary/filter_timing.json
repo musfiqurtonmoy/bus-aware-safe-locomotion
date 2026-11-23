@@ -1,0 +1,38 @@
+{
+  "run": "filter_s0",
+  "socs": [
+    1.0,
+    0.5,
+    0.2
+  ],
+  "n_calls": 23800,
+  "warmup_discarded": 200,
+  "budget_us": {
+    "mean": 5.41922268907563,
+    "median": 5.0,
+    "p99": 7.6,
+    "max": 25.4
+  },
+  "projection_us": {
+    "mean": 188.57397478991595,
+    "median": 25.8,
+    "p99": 835.8019999999997,
+    "max": 1158.2
+  },
+  "total_us": {
+    "mean": 193.9931974789916,
+    "median": 32.0,
+    "p99": 842.8019999999997,
+    "max": 1164.9
+  },
+  "status_counts": {
+    "active": 6710,
+    "inactive": 17090
+  },
+  "machine": {
+    "processor": "Intel64 Family 6 Model 165 Stepping 3, GenuineIntel",
+    "python": "3.14.6",
+    "numpy": "2.5.5",
+    "timer": "time.perf_counter_ns"
+  }
+}

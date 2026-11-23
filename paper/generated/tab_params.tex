@@ -1,0 +1,30 @@
+{\footnotesize\setlength{\tabcolsep}{3pt}\begin{tabular}{>{\raggedright\arraybackslash}p{0.14\linewidth}rll>{\raggedright\arraybackslash}p{0.39\linewidth}}\toprule
+Quantity & Value & Unit & Status & Source \\\midrule
+$N$ & 6 & -- & VERIFIED & \cite{katz2018actuator}, p.~23 \\
+$Nk_t$ & 0.45 & N\,m/A & DERIVED & derived from \cite{katz2018actuator}, p.~27 \\
+$p$ & 21 & -- & VERIFIED & \cite{katz2018actuator}, p.~27 \\
+$R$ & 0.105 & $\Omega$ & ASSUMED & not reported by the actuator source \\
+$L$ & 3e-05 & H & VERIFIED & \cite{katz2018actuator}, p.~38 \\
+$I_{\mathrm{ph}}$ & 40 & A & VERIFIED & \cite{katz2018actuator}, p.~37 \\
+$\tau_{\max}$ & 17 & N\,m & VERIFIED & \cite{katz2018actuator}, p.~25 \\
+$P_0$ & 2 & W & ASSUMED & no source for the idle power of the drive electronics \\
+Gear efficiency & 1 & -- & ASSUMED & lossless gear; 0.9 in variant \texttt{gear\_eff\_0.9} \\
+Current-loop bandwidth & off (ideal) & -- & ASSUMED & ideal current loop, as in the averaged model; 1000~Hz in variant \texttt{current\_lag} \\
+$n_s$ & 6 & -- & SOURCED & \cite{unitree2026go1battery} \\
+Capacity (leg share) & 1.38938 & Ah & DERIVED & fit to \cite{kollmeyer2020hg2} \\
+$R_0$ & 0.288682 & $\Omega$ & DERIVED & fit to \cite{kollmeyer2020hg2}; wiring resistance assumed \\
+$R_1$ & 0.192461 & $\Omega$ & DERIVED & fit to \cite{kollmeyer2020hg2} \\
+$C_1$ & 129.871 & F & DERIVED & fit to \cite{kollmeyer2020hg2} \\
+$C$ & 0.000868056 & F & VERIFIED & \cite{katz2018actuator}, p.~72 \\
+$V_{\min}$ & 16.8 & V & SOURCED & data range of \cite{kollmeyer2020hg2} \\
+Observation reference & 16.8 & V & FIXED & training setting \\
+$V_{\max}$ & 27.5 & V & ASSUMED & overvoltage trip above the full-charge voltage \\
+$I_{\lim}$ & 10 & A & DERIVED & \cite{kollmeyer2020hg2} (test report, p.~1) \\
+$I_{\mathrm{chg}}$ & 2 & A & DERIVED & \cite{kollmeyer2020hg2} (test report, p.~1) \\
+$V_{c,\mathrm{on}}$ & 26 & V & ASSUMED & brake-chopper design, between full charge and $V_{\max}$ \\
+$V_{c,\mathrm{off}}$ & 25.5 & V & ASSUMED & above the full-charge voltage, so a resting pack is not discharged \\
+$R_c$ & 2 & $\Omega$ & ASSUMED & brake-resistor design choice \\
+$P_{\mathrm{aux}}$ & 5 & W per leg & ASSUMED & share of on-board computer and sensors \\
+$\sigma_v$ & 0.02 & V (1$\sigma$) & ASSUMED & a few steps of a 12-bit converter \\
+$\sigma_i$ & 0.05 & A (1$\sigma$) & ASSUMED & 0.5\,\% of $I_{\lim}$ \\
+\bottomrule\end{tabular}}

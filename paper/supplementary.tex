@@ -1,0 +1,59 @@
+% Supplementary material of the anonymized manuscript (main.tex): per-seed tables (CHANGELOG #47).
+% Same rules as main.tex: every number comes from generated/ (scripts/export_paper.py).
+% Build this file before main.tex: main.tex refers to its tables through xr-hyper (prefix S-).
+\documentclass[12pt,a4paper]{article}
+\ifdefined\pdfsuppressptexinfo \pdfsuppressptexinfo=-1 \fi
+\usepackage[T1]{fontenc}
+\usepackage[margin=25mm]{geometry}
+\usepackage{amsmath,amssymb,graphicx,booktabs,siunitx,xcolor,longtable,array,rotating,hyperref}
+\input{macros}
+% article title (title.tex is not part of the public release)
+\newcommand{\papertitle}{Safe Learned Locomotion Under Battery and Direct-Current Bus Limits: A Barrier-Based Power Filter}
+\renewcommand{\thetable}{S\arabic{table}}
+\setcounter{table}{-1} % the nomenclature is Table S0
+\title{Supplementary material\\[4pt]\large \papertitle}
+\date{}
+\begin{document}
+\maketitle
+\section*{Nomenclature}
+\input{sections/nomenclature}
+\clearpage
+Tables~\ref{tab:perseed} and~\ref{tab:perseedws} give the main evaluations of the manuscript's tables of the policies trained from scratch and of the warm-started policies per seed: falls as counts of episodes, and hops, max height and violation times as means over the \res{eval_eps_main} episodes of each seed and state of charge (SOC). Methods, metrics and seeds are defined in the manuscript's experimental setup.
+\begin{table}[p]\centering\caption{Policies trained from scratch, per seed.}\label{tab:perseed}
+\gentable{tab_per_seed_part1}
+\end{table}
+\begin{table}[p]\centering\caption{Policies trained from scratch, per seed (continued from Table~\ref{tab:perseed}).}
+\gentable{tab_per_seed_part2}
+\end{table}
+\begin{table}[p]\centering\caption{Warm-started policies, per seed.}\label{tab:perseedws}
+\gentable{tab_per_seed_warmstart_part1}
+\end{table}
+\begin{table}[p]\centering\caption{Warm-started policies, per seed (continued from Table~\ref{tab:perseedws}).}
+\gentable{tab_per_seed_warmstart_part2}
+\end{table}
+\begin{table}[p]\centering\caption{Warm-started policies, per seed (continued from Table~\ref{tab:perseedws}).}
+\gentable{tab_per_seed_warmstart_part3}
+\end{table}
+\section*{Undervoltage limit from the cell datasheet}
+Table~\ref{tab:vminid} compares, per filter-mode evaluation, the episodes with $V_{\min}=\res{par_vmin_ds}$~V with the same episodes at $V_{\min}=\res{par_vmin}$~V. An episode counts as identical when every recorded value except the time below $V_{\min}$ is equal.
+\begin{table}[p]\centering\caption{$V_{\min}=\res{par_vmin_ds}$~V against $V_{\min}=\res{par_vmin}$~V, warm-started policies in filter mode, \res{eval_eps_set} episodes per state of charge and seed: episodes identical in every recorded value except the time below $V_{\min}$, and the largest difference in max height over the episodes.}\label{tab:vminid}
+\gentable{tab_vmin_identity}
+\end{table}
+\section*{Full result tables}
+The manuscript shows condensed versions of the following tables (the main comparison, the ablation summary, the estimator evaluations and the stress tests); these are the full versions, generated from the same summaries. SOC: state of charge.
+\begin{table}[p]\centering\caption{Policies trained from scratch: violations and task performance by method and state of charge (mean $\pm$ std over seeds; \res{eval_eps_main} episodes per seed and state of charge). Falls: fraction of episodes.}\label{tab:violfull}
+\gentable{tab_violations}
+\end{table}
+\begin{table}[p]\centering\caption{Warm-started policies (each continued from the baseline policy of the same seed): violations and task performance by method and state of charge (mean $\pm$ std over seeds; \res{eval_eps_main} episodes per seed and state of charge). Falls: fraction of episodes. Penalty weights \res{pen_ws_w_part} have one seed.}\label{tab:wsfull}
+\gentable{tab_warmstart}
+\end{table}
+\begin{sidewaystable}\centering\caption{Ablation summary, one row per setting. Initialisation and filter placement: main evaluation (\res{eval_eps_main} episodes per seed and state of charge, warm-started policies for the placement); other factors: warm-started policies, \res{eval_eps_set} episodes per seed and state of charge. Violation times: largest over the three states of charge of the mean over \res{n_seeds} seeds; falls: count over seeds and states of charge; max height: mean over seeds at state of charge 0.2; filter active: fraction of substeps with the filter (or per-joint limit) active or infeasible, mean over states of charge. Plant variants: largest violation time and total falls over the \res{abs_nvar} variants, and the range of max height and filter activity over them.}\label{tab:ablsumfull}
+\gentable{tab_ablation_summary}
+\end{sidewaystable}
+\begin{sidewaystable}\centering\caption{Estimated battery parameters: warm-started filter policies with the true-state filter, the EKF with fixed margins and the EKF with confidence-scaled margins, under nominal conditions, mis-specified measurement noise $\sigma$ (true state: on $E$ and $R_0$; EKF: on its two measurements), and the plant's $R_0$ scaled. \res{n_seeds} seeds $\times$ \res{eval_eps_set} episodes per state of charge. Times and peak current: mean $\pm$ std over seeds; largest: over all episodes. Confidence: mean of the episode means [smallest, largest episode mean]. $R_0$ diverged: episodes whose final $R_0$ estimate is outside \res{est_rdiv_lo} to \res{est_rdiv_hi} times the plant's. Counters: substeps in which (A3), the bound of the charge-limit remark of the manuscript, (A4) or (A6) fails.}\label{tab:estfull}
+\gentable{tab_estimator}
+\end{sidewaystable}
+\begin{table}[p]\centering\caption{Stress tests of the warm-started policies: parameter variants (plant and filter alike, except current lag and gear efficiency, plant only), barrier rate $\gamma$ (base \res{env_gamma}), and model error of the true-state filter (estimation noise $\sigma$ on its $E$ and $R_0$, or the plant's $R_0$ scaled while the filter keeps the model's). Penalty $w=\res{pst_w}$ + filter at test: the warm-started penalty policies with weight $w$, the filter added at test time (base, variants and barrier rates). \res{n_seeds} seeds $\times$ \res{eval_eps_set} episodes per state of charge, reset seeds \res{eval_seed_first} to \res{eval_seed_set_last}. Violation and collapse times: largest over the three states of charge of the mean over seeds; infeasible time likewise. Falls: count over seeds and states of charge. Hops and filter active: mean over states of charge.}\label{tab:ablfull}
+\gentable{tab_ablation}
+\end{table}
+\end{document}

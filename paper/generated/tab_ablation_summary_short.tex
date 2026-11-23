@@ -1,0 +1,37 @@
+{\footnotesize\setlength{\tabcolsep}{3pt}\begin{tabular}{>{\raggedright\arraybackslash}p{0.15\linewidth}>{\raggedright\arraybackslash}p{0.33\linewidth}rcrr}\toprule
+Factor & Setting & \begin{tabular}[b]{@{}c@{}}Violation\\{}(s)\end{tabular} & Falls & \begin{tabular}[b]{@{}c@{}}Height\\{}0.2 (m)\end{tabular} & \begin{tabular}[b]{@{}c@{}}Active\\{}(\%)\end{tabular} \\\midrule
+Initialisation & from scratch & 0.000 & 0/180 & 0.075 & 9.5 \\
+ & warm start & 0.000 & 0/180 & 0.181 & 30.9 \\
+\midrule
+Filter placement & none, baseline & 1.330 & 0/180 & 0.292 & -- \\
+ & at test time, baseline & 0.000 & 31/180 & 0.182 & 44.0 \\
+ & at test time, penalty $w=0.5$ & 0.000 & 0/180 & 0.203 & 31.2 \\
+ & in training & 0.000 & 0/180 & 0.181 & 30.9 \\
+\midrule
+Barrier rate & $\gamma=0.1$ & 0.000 & 0/90 & 0.181 & 35.0 \\
+ & $\gamma=0.3$ (base) & 0.000 & 0/90 & 0.181 & 30.9 \\
+ & $\gamma=0.6$ & 0.000 & 0/90 & 0.181 & 29.9 \\
+ & $\gamma=1$ & 0.000 & 0/90 & 0.181 & 29.5 \\
+\midrule
+Margins & $\delta_V=0.2$, $\delta_I=0.5$ (base) & 0.000 & 0/90 & 0.181 & 30.9 \\
+ & $\delta_V=0.2$, $\delta_I=0$ & 0.000 & 0/90 & 0.184 & 29.1 \\
+ & $\delta_V=0.2$, $\delta_I=1$ & 0.000 & 0/90 & 0.177 & 32.7 \\
+ & $\delta_V=0$, $\delta_I=0$ & 0.000 & 0/90 & 0.184 & 29.1 \\
+\midrule
+Controller & joint filter (base), baseline & 0.000 & 15/90 & 0.182 & 44.3 \\
+ & per-joint limit, baseline & 0.000 & 25/90 & 0.187 & 61.0 \\
+ & joint filter (base) & 0.000 & 0/90 & 0.181 & 30.9 \\
+ & per-joint limit & 0.000 & 0/90 & 0.161 & 54.5 \\
+\midrule
+Estimator & nominal, true state & 0.000 & 0/90 & 0.181 & 30.9 \\
+ & nominal, EKF & 0.000 & 0/90 & 0.181 & 31.0 \\
+ & plant $R_0\times0.75$, true state & 0.928 & 0/90 & 0.188 & 23.7 \\
+ & plant $R_0\times0.75$, EKF & 0.000 & 0/90 & 0.184 & 29.4 \\
+ & noise $\sigma=0.05$, true state & 0.216 & 0/90 & 0.153 & 47.0 \\
+ & noise $\sigma=0.05$, EKF & 0.232 & 0/90 & 0.182 & 33.5 \\
+ & noise $\sigma=0.05$, EKF, conf.\ margins & 0.019 & 0/90 & 0.165 & 38.3 \\
+\midrule
+Plant variants & 10 variants, baseline & 2.614 & 23/900 & 0.191--0.351 & -- \\
+ & baseline + filter at test & 0.000 & 168/900 & 0.148--0.217 & 27.6--52.7 \\
+ & filter-trained & 0.000 & 0/900 & 0.155--0.204 & 16.2--44.8 \\
+\bottomrule\end{tabular}}

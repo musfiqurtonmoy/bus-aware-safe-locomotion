@@ -1,0 +1,22 @@
+{\footnotesize\setlength{\tabcolsep}{3pt}\begin{tabular}{>{\raggedright\arraybackslash}p{0.21\linewidth}lrrrrrrr}\toprule
+Method & SOC & \begin{tabular}[b]{@{}c@{}}Below\\{}$V_{\min}$ (s)\end{tabular} & \begin{tabular}[b]{@{}c@{}}Above\\{}$I_{\lim}$ (s)\end{tabular} & \begin{tabular}[b]{@{}c@{}}Collapse\\{}(s)\end{tabular} & \begin{tabular}[b]{@{}c@{}}Peak\\{}$\Ib$ (A)\end{tabular} & Hops & \begin{tabular}[b]{@{}c@{}}Max\\{}height (m)\end{tabular} & Falls \\\midrule
+Baseline & 1 & 0.515 & 1.022 & 0.281 & 52.2 & 5.5 & 0.369 & 0.00 \\
+ & 0.5 & 0.925 & 1.291 & 0.453 & 46.7 & 6.1 & 0.306 & 0.00 \\
+ & 0.2 & 1.209 & 1.430 & 0.526 & 43.7 & 6.0 & 0.262 & 0.05 \\
+\addlinespace
+Baseline + filter at test & 1 & 0.000 & 0.000 & 0.000 & 9.5 & 6.5 & 0.210 & 0.00 \\
+ & 0.5 & 0.000 & 0.000 & 0.000 & 9.5 & 7.1 & 0.191 & 0.00 \\
+ & 0.2 & 0.000 & 0.000 & 0.000 & 9.5 & 5.6 & 0.139 & 0.22 \\
+\addlinespace
+Penalty & 1 & 0.000 & 0.000 & 0.000 & 1.3 & 0.0 & 0.020 & 0.00 \\
+ & 0.5 & 0.000 & 0.000 & 0.000 & 1.3 & 0.0 & 0.020 & 0.00 \\
+ & 0.2 & 0.000 & 0.000 & 0.000 & 1.4 & 0.0 & 0.020 & 0.00 \\
+\addlinespace
+Penalty + filter at test & 1 & 0.000 & 0.000 & 0.000 & 1.3 & 0.0 & 0.020 & 0.00 \\
+ & 0.5 & 0.000 & 0.000 & 0.000 & 1.3 & 0.0 & 0.020 & 0.00 \\
+ & 0.2 & 0.000 & 0.000 & 0.000 & 1.4 & 0.0 & 0.020 & 0.00 \\
+\addlinespace
+Filter (trained with) & 1 & 0.000 & 0.000 & 0.000 & 4.2 & 3.0 & 0.083 & 0.00 \\
+ & 0.5 & 0.000 & 0.000 & 0.000 & 4.2 & 3.3 & 0.078 & 0.00 \\
+ & 0.2 & 0.000 & 0.000 & 0.000 & 4.2 & 3.3 & 0.075 & 0.00 \\
+\bottomrule\end{tabular}}

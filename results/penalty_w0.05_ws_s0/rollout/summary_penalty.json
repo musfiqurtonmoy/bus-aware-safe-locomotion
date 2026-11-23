@@ -1,0 +1,111 @@
+{
+  "run": "penalty_w0.05_ws_s0",
+  "mode": "penalty",
+  "seed": 0,
+  "hop_definition": "complete flight (no contact) >= 0.02 s, ended by contact before the episode end, apex above the start height",
+  "episode_s": 4.0,
+  "socs": {
+    "1": {
+      "n_hops": 5,
+      "hops": [
+        {
+          "start": 0.2,
+          "end": 0.716,
+          "duration": 0.52,
+          "apex": 0.3526763565911227
+        },
+        {
+          "start": 0.872,
+          "end": 1.416,
+          "duration": 0.548,
+          "apex": 0.39200560438785353
+        },
+        {
+          "start": 1.58,
+          "end": 2.132,
+          "duration": 0.556,
+          "apex": 0.40417786550622664
+        },
+        {
+          "start": 2.2960000000000003,
+          "end": 2.848,
+          "duration": 0.556,
+          "apex": 0.40293792123939415
+        },
+        {
+          "start": 3.012,
+          "end": 3.564,
+          "duration": 0.556,
+          "apex": 0.4026865481287092
+        }
+      ],
+      "fell": false,
+      "steps": 1000,
+      "ret": 1198.4094670773216,
+      "z_max": 0.40417786550622664,
+      "height_max": 0.40417786550622664,
+      "uv_substeps": 926,
+      "oc_substeps": 1641,
+      "collapse_substeps": 513,
+      "uv_s": 0.463,
+      "oc_s": 0.8205,
+      "ov_s": 0.0,
+      "collapse_s": 0.2565,
+      "filt_s": 0.0,
+      "infeas_s": 0.0,
+      "v_bus_min": 9.947572245020506,
+      "i_bat_max": 52.23444717482104
+    },
+    "0.2": {
+      "n_hops": 5,
+      "hops": [
+        {
+          "start": 0.264,
+          "end": 0.76,
+          "duration": 0.5,
+          "apex": 0.3110146135037679
+        },
+        {
+          "start": 0.9440000000000001,
+          "end": 1.468,
+          "duration": 0.528,
+          "apex": 0.3387178197650785
+        },
+        {
+          "start": 1.6600000000000001,
+          "end": 2.184,
+          "duration": 0.528,
+          "apex": 0.34321961820845703
+        },
+        {
+          "start": 2.376,
+          "end": 2.896,
+          "duration": 0.524,
+          "apex": 0.3376780587547878
+        },
+        {
+          "start": 3.084,
+          "end": 3.608,
+          "duration": 0.528,
+          "apex": 0.3352470001915212
+        }
+      ],
+      "fell": false,
+      "steps": 1000,
+      "ret": 857.078664221151,
+      "z_max": 0.34321961820845703,
+      "height_max": 0.34321961820845703,
+      "uv_substeps": 1852,
+      "oc_substeps": 2184,
+      "collapse_substeps": 1057,
+      "uv_s": 0.926,
+      "oc_s": 1.092,
+      "ov_s": 0.0,
+      "collapse_s": 0.5285,
+      "filt_s": 0.0,
+      "infeas_s": 0.0,
+      "v_bus_min": 8.266530583944316,
+      "i_bat_max": 43.685086934714576
+    }
+  }
+}

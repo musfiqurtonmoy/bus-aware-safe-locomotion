@@ -1,0 +1,61 @@
+\section{Experimental setup}\label{sec:setup}
+All values in this section are read from the code, the run configurations and the saved models by the script that generates the manuscript's numbers.
+
+\subsection{Task}\label{sec:task}
+The leg of Section~\ref{sec:model} hops on its rail. An episode lasts \res{env_episode_s}~s, i.e.\ \res{env_maxsteps} control steps of \res{env_dtctrl_ms}~ms, each made of \res{env_substeps} plant substeps.
+
+\emph{Observation.} The policy's observation $o_t$ at control step $t$ has \res{env_obsdim} values: the rail height and velocity; the hip and knee angles relative to the stand pose $q_{\mathrm{stand}}$ ($q_{\mathrm{hip}}=\res{env_qstand_hip}$~rad, $q_{\mathrm{knee}}=\res{env_qstand_knee}$~rad); the two joint velocities times \res{obs_qvel_scale}; the previous action; a foot-contact flag; the bus voltage as $(\Vb-\res{par_vobsref}~\mathrm{V})/\res{obs_v_scale}~\mathrm{V}$; and the state of charge. The bus voltage and the state of charge in the observation are the plant's values in every evaluation, including those with the EKF filter.
+
+\emph{Action.} The action $\mathbf a\in[-1,1]^{\res{env_actdim}}$ sets joint position targets $q^{\mathrm{des}} = q_{\mathrm{stand}} + \kappa_a\mathbf a$ with action scale $\kappa_a=\res{env_actscale}$~rad, held for one control step. At every substep a PD law gives the output torque $k_p(q^{\mathrm{des}}-q) - k_d\dot q$ with $k_p=\res{env_kp}$~N\,m/rad and $k_d=\res{env_kd}$~N\,m\,s/rad. Dividing it by the output torque constant and clipping to $\pm I_{\max}$ gives the desired currents $i_q^{\mathrm{des}}$.
+
+\emph{Reset and termination.} Each episode starts from the stand pose with hip and knee angles perturbed by independent uniform offsets in $\pm\res{env_resetnoise}$~rad. In training the state of charge is drawn uniformly from $[\res{env_soclo},\res{env_sochi}]$; in evaluation it is set. An episode ends early, as a fall, when the rail height drops more than \res{env_fall_m}~m below the stand.
+
+\emph{Reward.} With $z$ the rail height relative to the stand and $\mathbf a_t$ the action, the reward of a control step is
+\begin{equation}
+r_t = \res{rew_height_w}\,\max(z-\res{rew_height_min},\,0) + \res{rew_alive} - \res{rew_smooth_w}\,\|\mathbf a_t-\mathbf a_{t-1}\|^2 - c_t ,
+\label{eq:reward}
+\end{equation}
+with $z$ in metres and a mode-dependent term $c_t$:
+\begin{itemize}
+\item baseline mode: $c_t=0$;
+\item penalty mode: $c_t = w\,(n_{\mathrm{uv}}+n_{\mathrm{oc}})/n_{\mathrm{sub}}$ with penalty weight $w$, where $n_{\mathrm{uv}}$ and $n_{\mathrm{oc}}$ count the control step's substeps with an undervoltage and with an overcurrent (Section~\ref{sec:model}) and $n_{\mathrm{sub}}=\res{env_substeps}$;
+\item filter mode: $c_t = w_f \sum_k \|i_q^{\mathrm{cmd}}-\operatorname{clip}(i_q^{\mathrm{des}},l,u)\|^2/(n_{\mathrm{sub}} I_{\mathrm{ph}})$, summed over the step's substeps $k$, with $i_q^{\mathrm{cmd}}$ the currents the filter commands, $w_f=\res{rew_wfilter}$ and the peak phase current $I_{\mathrm{ph}}=\res{par_imax}$~A; it penalises the filter's correction of the currents, not the clipping by the drives' own limits.
+\end{itemize}
+An electrical-energy term is implemented with weight \res{rew_wenergy} in every run. We chose the reward weights, the PD gains and the action scale ourselves, the same for every method. The plant is the same in all modes; only the controller side and the reward differ.
+
+\subsection{Training}
+We train all policies with soft actor-critic (SAC) \cite{haarnoja2018sac} as implemented in Stable-Baselines3 \cite{raffin2021sb3}, version \res{sb3_version}, on the MuJoCo simulation of the leg \cite{todorov2012mujoco}. The hyperparameters are the same for every run: learning rate \res{sac_lr}, discount factor \res{sac_discount}, target-network averaging coefficient \res{sac_tau}, replay buffer \res{sac_buffer} transitions, batch \res{sac_batch}, \res{sac_learnstarts} initial steps before the first gradient step, actor and critics with \res{sac_nlayers} hidden layers of \res{sac_width} units, entropy coefficient tuned automatically towards a target entropy of $\res{sac_targetent}$, and \res{sac_gradsteps} gradient step per environment step. Training uses one environment on the CPU. These are the defaults of Stable-Baselines3 except the replay buffer size, the number of initial steps and the hidden-layer width, which we set.
+
+\emph{From scratch.} We train baseline, penalty ($w=\res{pen_w_scratch}$) and filter policies for \res{train_steps_scratch} steps with seeds \res{seed_list}.
+
+\emph{Warm start.} Each warm-started policy fine-tunes the \res{ws_init_src} policy of the same seed for another \res{train_steps_ws} steps, in its own mode: baseline (continued training, as a control for the extra steps), filter, penalty with weights $w$ of \res{pen_ws_w_full} (seeds \res{seed_list}) and of \res{pen_ws_w_part} (seed \res{pen_ws_part_seed} only), and SAC-Lagrangian. We load the actor, both critics and their target networks, the entropy coefficient and the optimiser states. The replay buffer starts empty, because the stored rewards and, for filter mode, the dynamics differ between modes. During its first \res{sac_learnstarts} steps it is filled with the loaded policy's own stochastic actions, without gradient steps.
+
+\emph{SAC-Lagrangian.} The cost $\ell_t$ of a control step is the fraction of its substeps with an undervoltage or an overcurrent, and SAC is trained on $r_t-\mu \ell_t$ with the baseline reward $r_t$. After every episode the multiplier is updated by $\mu \leftarrow \max\{0,\ \mu + \eta\,(\bar\ell - d)\}$, where $\bar\ell$ is the episode's mean cost, the cost limit is $d=\res{lag_d}$, the step size is $\eta=\res{lag_lr}$, and $\mu$ starts at \res{lag_init}; $d$, $\eta$ and the initial $\mu$ are our choices. Transitions in the replay buffer keep the shaped reward of the multiplier at the time they were collected. The constraint on the expected episode cost makes the task a constrained Markov decision process \cite{altman1999cmdp}, and this multiplier update is the traditional Lagrangian update, which acts as integral control on the constraint violation \cite{stooke2020pid}.
+
+\subsection{Evaluation}
+Policies act deterministically (the mean action). Every policy is evaluated at states of charge (SOC in the tables) \res{eval_socs}, with \res{eval_eps_main} episodes per seed and state of charge. Episode $j$ uses reset seed $\res{eval_seed_first}+j$ in every evaluation, so all methods and modes start from the same initial states. Each policy is evaluated in its own training mode and with the test-time filter (``+ filter at test''). Penalty and Lagrangian policies run on the same plant as all others; the Lagrangian policies' return is the baseline reward without the multiplier term.
+
+\emph{Stress tests.} We evaluate the warm-started baseline policies (alone and with the test-time filter) and the warm-started filter-trained policies in \res{set_ntotal} further settings, with the first \res{eval_eps_set} reset seeds (\res{eval_seed_first} to \res{eval_seed_set_last}) per seed and state of charge. The reference (``Base'') is the same episodes of the main evaluation. The settings are:
+\begin{itemize}
+\item parameter variants, applied to the plant and to the filter's model alike: a cold battery (cell model fitted at 0\,$^\circ$C, $R_0=\res{var_cold_r0}~\Omega$ against \res{par_r0}~$\Omega$, charge limit \res{var_cold_ichg}~A); $V_{\min}=\res{par_vmin_ds}$~V; wiring resistance of \res{var_wiring_lo} or \res{var_wiring_hi}~m$\Omega$ per pack instead of \res{var_wiring_base}~m$\Omega$; $P_{\mathrm{aux}}=\res{var_paux_lo}$ or \res{var_paux_hi}~W; phase resistance $\times\res{var_rphase_lo}$ or $\times\res{var_rphase_hi}$;
+\item plant-only variants that the filter does not know about: a first-order current-loop lag with \res{var_lag_hz}~Hz bandwidth, and a gear efficiency of \res{var_geareff} on motoring torque;
+\item barrier rates $\gamma$ of \res{set_gammas} instead of \res{env_gamma};
+\item model error of the true-state filter: the plant's $R_0$ scaled by \res{set_r0s} while the filter keeps the model's $R_0$, and estimation noise of scale $\sigma$ of \res{set_noises} on the filter's $E$ and $R_0$ (Remark~\ref{rem:sens});
+\item the EKF filter of Section~\ref{sec:estimator} for the warm-started filter-trained policies, with fixed or confidence-scaled margins, under nominal conditions, with noise $\sigma=\res{est_sigma}$ on its measurements, and with the plant's $R_0$ scaled by \res{set_rbig} or \res{set_rsmall}.
+\end{itemize}
+
+\emph{Metrics.} All counts are taken over plant substeps and use the end-of-substep values.
+\begin{itemize}
+\item $t(\Vb<V_{\min})$ and $t(\Ib>I_{\lim})$: number of substeps with an undervoltage or an overcurrent (Section~\ref{sec:model}), times $\Delta t$, in seconds per \res{env_episode_s}~s episode. Overvoltage above $V_{\max}=\res{par_vmax}$~V is counted the same way.
+\item Collapse: substeps in which the requested load exceeded the largest power the bus can deliver, times $\Delta t$.
+\item $\Vb$ min and peak $\Ib$ (peak battery current): the lowest bus voltage and the highest battery current over the episode's substeps.
+\item Falls: episodes ended by the fall condition.
+\item Hops: complete flight phases, i.e.\ maximal runs of control steps without foot contact that last at least \res{hop_minflight_ms}~ms, end in contact before the episode ends, and reach an apex above the starting rail height. Mean apex is the mean apex of the hops, so it exists only for episodes with a hop.
+\item Max height: the largest rail height above the starting height during the episode, defined for every episode.
+\item Return: the sum of the rewards of the evaluated mode, so returns are comparable only within a mode.
+\item Filter active: fraction of substeps in which the filter's outcome is active or infeasible; infeasible time: substeps with outcome infeasible, times $\Delta t$.
+\item Counters: substeps in which an assumption of Section~\ref{sec:filter} fails, namely (A3), the extra bound of Remark~\ref{rem:charge}, (A4), or (A6). They are recorded only and never act on the controller or the plant.
+\end{itemize}
+Episodes are averaged within a seed, then the mean and standard deviation (with Bessel's correction) are taken over seeds. In Tables~\ref{tab:viol} and~\ref{tab:ws} falls are the fraction of episodes that fell; elsewhere they are counts over all seeds.
+
+The simulation and analysis code was developed with the assistance of an artificial-intelligence tool (Claude, Anthropic, through Claude Code) under the author's direction, and is verified by \res{n_tests} automated tests.

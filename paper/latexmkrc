@@ -1,0 +1,8 @@
+# main.tex refers to tables in supplementary.tex through xr-hyper (\externaldocument[S-]{supplementary}).
+# This rule lets latexmk (locally and on Overleaf) build supplementary.tex first, so that its .aux exists.
+add_cus_dep('tex', 'aux', 0, 'makeexternaldocument');
+sub makeexternaldocument {
+    if (!($root_filename eq $_[0])) {
+        system("latexmk -cd -pdf \"$_[0]\"");
+    }
+}

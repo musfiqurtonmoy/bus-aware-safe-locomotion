@@ -1,0 +1,13 @@
+{
+  "budget": {
+    "soc": 0.2,
+    "i_frac": 0.8
+  },
+  "settings": {
+    "eps_set": 10
+  },
+  "training": {
+    "window": 20,
+    "penalty_w": 0.5
+  }
+}

@@ -1,0 +1,61 @@
+% Bus-aware safe locomotion: ANONYMIZED MANUSCRIPT for double-anonymized review
+% (Engineering Applications of Artificial Intelligence). No author names, affiliations,
+% acknowledgments, funding, competing-interest or CRediT statements here: they are in
+% titlepage.tex, submitted as a separate file. Elsevier elsarticle, single column.
+% Numbers, tables and figures come from generated/ (written by scripts/export_paper.py).
+% Never type a result by hand: use \res{key}.
+\documentclass[preprint,12pt,a4paper]{elsarticle}
+% anonymized review: keep the local file paths of included figures out of the PDF (pdfTeX)
+\ifdefined\pdfsuppressptexinfo \pdfsuppressptexinfo=-1 \fi
+\usepackage[T1]{fontenc}
+\usepackage{xr-hyper} % per-seed tables are in supplementary.tex (build it first)
+\usepackage{amsmath,amssymb,amsthm,graphicx,booktabs,siunitx,xcolor,hyperref}
+\externaldocument[S-]{supplementary}
+\usepackage{rotating,longtable,array}
+\usepackage{algorithm,algpseudocode}
+\algnotext{EndIf}\algnotext{EndFor} % scope shown by indentation
+\setlength{\emergencystretch}{2em}
+\renewcommand{\topfraction}{0.9}\renewcommand{\textfraction}{0.07}\renewcommand{\floatpagefraction}{0.8}\setcounter{topnumber}{3}\setcounter{totalnumber}{4} % fewer part-empty float pages (page limit)
+\newtheorem{proposition}{Proposition}
+\newtheorem{lemma}{Lemma}
+\newtheorem{corollary}{Corollary}
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+\input{macros}
+% article title (title.tex is not part of the public release)
+\newcommand{\papertitle}{Safe Learned Locomotion Under Battery and Direct-Current Bus Limits: A Barrier-Based Power Filter}
+% Data availability link, defined once. Review version (this anonymized manuscript): the
+% anonymized mirror (anonymous.4open.science). Replace the placeholder at submission;
+% tests/test_release_pdf.py (pytest --release) fails while any PENDING or TODO is in the PDF.
+\newcommand{\dataurl}{\texttt{ANON\_URL\_PENDING}}
+\journal{Engineering Applications of Artificial Intelligence}
+\begin{document}
+\begin{frontmatter}
+\title{\papertitle}
+% Highlights: separate file highlights.txt. Graphical abstract: encouraged, not prepared.
+\begin{abstract}
+\input{sections/abstract}
+\end{abstract}
+\begin{keyword}
+legged robots \sep reinforcement learning \sep control barrier functions \sep direct-current bus \sep battery \sep motor drives
+\end{keyword}
+\end{frontmatter}
+\noindent A list of symbols and acronyms is given in Table~\ref{S-tab:nomen} of the supplementary material.
+
+\input{sections/introduction}
+\input{sections/related}
+\input{sections/model}
+\input{sections/filter}
+\input{sections/setup}
+\input{sections/results}
+\input{sections/discussion}
+\input{sections/conclusion}
+\clearpage % place every float of the main text before the back matter
+\section*{Data availability}
+All models are built from public sources (LG HG2 battery dataset \cite{kollmeyer2020hg2}, MuJoCo Menagerie Go1 model \cite{zakka2022menagerie}, Katz 2018 thesis \cite{katz2018actuator}), with the remaining parameters stated as assumptions in Table~\ref{tab:params}, and the full code and evaluation data are released at \dataurl{} for replication.
+
+\section*{Declaration of generative AI and AI-assisted technologies in the manuscript preparation process}
+During the preparation of this work the author used Claude (Anthropic), through Claude Code, in order to search the literature, write and test the simulation and analysis code, and draft and edit the text. The tool was used under the author's oversight and control, and not as a substitute for human critical thinking, expertise and evaluation. After using this tool, the author reviewed and edited all output and takes full responsibility and accountability for the content of the published article.
+\bibliographystyle{elsarticle-num}
+\bibliography{refs}
+\end{document}

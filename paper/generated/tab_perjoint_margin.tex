@@ -1,0 +1,18 @@
+\resizebox{\linewidth}{!}{\begin{tabular}{llrrrrrrcrr}\toprule
+Controller and margins & Policy & \begin{tabular}[b]{@{}c@{}}$t(\Vb<V_{\min})$\\{}(s)\end{tabular} & \begin{tabular}[b]{@{}c@{}}$t(\Ib>I_{\lim})$\\{}(s)\end{tabular} & \begin{tabular}[b]{@{}c@{}}Collapse\\{}(s)\end{tabular} & \begin{tabular}[b]{@{}c@{}}Peak $\Ib$\\{}(A)\end{tabular} & Falls & Hops & \begin{tabular}[b]{@{}c@{}}Max height (m)\\{}SOC 1.0 / 0.5 / 0.2\end{tabular} & \begin{tabular}[b]{@{}c@{}}Filter or limiter\\{}active (\%)\end{tabular} & \begin{tabular}[b]{@{}c@{}}Infeasible\\{}(s)\end{tabular} \\\midrule
+Joint filter, $\delta_V=0.2$~V, $\delta_I=0.5$~A & Baseline + filter at test & 0.000 & 0.000 & 0.000 & 9.50 & 15/90 & 5.9 & 0.188 / 0.199 / 0.182 & 44.3 & 0.010 \\
+ & Filter-trained & 0.000 & 0.000 & 0.000 & 9.50 & 0/90 & 7.3 & 0.208 / 0.191 / 0.181 & 30.9 & 0.000 \\
+\midrule
+Per-joint limit (same margins) & Baseline + per-joint limit at test & 0.000 & 0.000 & 0.000 & 9.50 & 25/90 & 5.7 & 0.194 / 0.199 / 0.187 & 61.0 & 0.017 \\
+ & Filter-trained, per-joint limit at test & 0.000 & 0.000 & 0.000 & 9.50 & 0/90 & 6.6 & 0.184 / 0.166 / 0.161 & 54.5 & 0.000 \\
+\midrule
+Joint filter, $\delta_V=0.2$~V, $\delta_I=0$~A & Filter-trained & 0.000 & 0.000 & 0.000 & 10.00 & 0/90 & 7.2 & 0.214 / 0.196 / 0.184 & 29.1 & 0.000 \\
+\addlinespace
+Joint filter, $\delta_V=0.2$~V, $\delta_I=1$~A & Filter-trained & 0.000 & 0.000 & 0.000 & 9.00 & 0/90 & 7.3 & 0.204 / 0.186 / 0.177 & 32.7 & 0.000 \\
+\addlinespace
+Joint filter, $\delta_V=0$~V, $\delta_I=0.5$~A & Filter-trained & 0.000 & 0.000 & 0.000 & 9.50 & 0/90 & 7.3 & 0.208 / 0.191 / 0.181 & 30.9 & 0.000 \\
+\addlinespace
+Joint filter, $\delta_V=0.5$~V, $\delta_I=0.5$~A & Filter-trained & 0.000 & 0.000 & 0.000 & 9.50 & 0/90 & 7.3 & 0.208 / 0.191 / 0.181 & 30.9 & 0.000 \\
+\addlinespace
+Joint filter, $\delta_V=0$~V, $\delta_I=0$~A & Filter-trained & 0.000 & 0.000 & 0.000 & 10.00 & 0/90 & 7.2 & 0.214 / 0.196 / 0.184 & 29.1 & 0.000 \\
+\bottomrule\end{tabular}}

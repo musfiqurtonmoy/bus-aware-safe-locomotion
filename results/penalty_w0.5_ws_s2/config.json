@@ -1,0 +1,16 @@
+{
+  "run": "penalty_w0.5_ws_s2",
+  "mode": "penalty",
+  "seed": 2,
+  "steps": 150000,
+  "penalty_w": 0.5,
+  "w_energy": 0.0,
+  "init": "baseline_s2",
+  "lagrangian": null,
+  "init_loaded": "actor, critics, target critics, entropy coefficient, optimisers; replay buffer not loaded",
+  "buffer_size": 200000,
+  "batch_size": 256,
+  "learning_starts": 5000,
+  "sb3": "2.9.2",
+  "started": "2026-11-20T01:01:49"
+}

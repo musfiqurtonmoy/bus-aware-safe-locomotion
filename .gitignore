@@ -1,0 +1,37 @@
+# downloaded source data (scripts/download_data.py)
+data/raw/
+
+# Python caches and virtual environments
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ipynb_checkpoints/
+.venv/
+venv/
+env/
+
+# local settings and secrets
+.env
+.claude/
+settings.local.json
+
+# LaTeX build files
+paper/*.aux
+paper/*.bbl
+paper/*.blg
+paper/*.fdb_latexmk
+paper/*.fls
+paper/*.log
+paper/*.out
+paper/*.spl
+paper/*.synctex.gz
+paper/*.toc
+paper/*.pdf
+
+# written by scripts/export_paper.py for journal submission, not part of the repository
+paper/generated/submission/
+paper_overleaf.zip
+
+# OS files
+.DS_Store
+Thumbs.db

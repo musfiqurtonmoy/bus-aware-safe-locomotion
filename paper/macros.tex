@@ -1,0 +1,14 @@
+% Result lookup: \res{key} prints a value from generated/results.tex,
+% or a red [pending:key] marker if that key has not been generated yet.
+\makeatletter
+\newcommand{\resdef}[2]{\expandafter\gdef\csname res@#1\endcsname{#2}}
+\newcommand{\res}[1]{\@ifundefined{res@#1}{\textcolor{red}{[pending:\detokenize{#1}]}}{\csname res@#1\endcsname}}
+\makeatother
+\IfFileExists{generated/results.tex}{\input{generated/results}}{}
+% \gentable{file}: input a generated table if it exists
+\newcommand{\gentable}[1]{\IfFileExists{generated/#1.tex}{\input{generated/#1}}{\textcolor{red}{[pending table: \detokenize{#1}]}}}
+% \genfig{file}{width}: include a generated figure if it exists
+\newcommand{\genfig}[2]{\IfFileExists{generated/figures/#1.pdf}{\includegraphics[width=#2]{generated/figures/#1.pdf}}{\fbox{\textcolor{red}{[pending figure: \detokenize{#1}]}}}}
+\newcommand{\todo}[1]{\textcolor{blue}{[TODO: #1]}}
+\newcommand{\Vb}{V_{\mathrm{bus}}}
+\newcommand{\Ib}{I_{\mathrm{bat}}}

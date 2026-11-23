@@ -1,0 +1,51 @@
+<mujoco model="hopping_leg">
+  <!-- One leg of a Go1-scale pronking quadruped on a vertical rail, with Mini Cheetah-class
+       drives. Masses, link lengths, inertias and centre-of-mass offsets: MuJoCo Menagerie
+       unitree_go1/go1.xml, commit 370c43965323c0944b433b202aac5058b5f907a9, FR leg.
+       See model_provenance.md for every value. -->
+  <!-- angles (joint ranges) in radians; MuJoCo's MJCF default is degrees (CHANGELOG #16) -->
+  <compiler angle="radian"/>
+  <option timestep="0.0005" integrator="implicitfast"/>
+  <default>
+    <!-- drive-side joint properties (Mini Cheetah-class drives), not from the Go1 model:
+         armature 0.0023 kg m^2 = actuator output inertia (Katz 2018 Table 2.2 p. 25);
+         frictionloss 0.09 N m = static gear/bearing friction at the output (Katz 2018 Sec. 2.5.2
+         Eq. 2.27 pp. 51-52; the 0.04 N m/N m torque-dependent term is not modelled);
+         damping 0: friction has "negligible speed dependence within the operating range"
+         (Katz 2018 Sec. 2.5.2 p. 51). -->
+    <joint damping="0" armature="0.0023" frictionloss="0.09"/>
+    <geom friction="1.0 0.02 0.01" rgba="0.6 0.6 0.65 1"/>
+  </default>
+  <worldbody>
+    <geom name="floor" type="plane" size="2 2 0.1" rgba="0.3 0.3 0.3 1"/>
+    <light pos="0 -1 2"/>
+    <!-- z = 2 x 0.213 cos(0.7) + 0.023: foot just touches the floor at the stand keyframe -->
+    <body name="torso" pos="0 0 0.3488">
+      <joint name="rail" type="slide" axis="0 0 1" damping="0" armature="0" frictionloss="0"/>
+      <!-- trunk/4 + hip = 5.204/4 + 0.68 = 1.981 kg; rotation is blocked by the rail -->
+      <geom type="box" size="0.08 0.06 0.04" mass="1.981"/>
+      <body name="thigh">
+        <joint name="hip" type="hinge" axis="0 1 0" range="-1.6 1.6"/>
+        <inertial pos="-0.00304722 0.019315 -0.0305004" quat="0.65243 -0.0272313 0.0775126 0.753383"
+          mass="1.009" diaginertia="0.00478717 0.00460903 0.000709268"/>
+        <geom type="capsule" fromto="0 0 0 0 0 -0.213" size="0.02"/>
+        <body name="shank" pos="0 0 -0.213">
+          <!-- knee range: Go1-model knee class range="-2.818 -0.888" -->
+          <joint name="knee" type="hinge" axis="0 1 0" range="-2.818 -0.888"/>
+          <inertial pos="0.00429862 0.000976676 -0.146197" quat="0.691246 0.00357467 0.00511118 0.722592"
+            mass="0.195862" diaginertia="0.00149767 0.00148468 3.58427e-05"/>
+          <geom type="capsule" fromto="0 0 0 0 0 -0.19" size="0.01"/>
+          <!-- foot friction: Go1-model foot class friction="0.8 0.02 0.01" -->
+          <geom name="foot" type="sphere" pos="0 0 -0.213" size="0.023" friction="0.8 0.02 0.01"/>
+        </body>
+      </body>
+    </body>
+  </worldbody>
+  <actuator>
+    <motor name="hip_m" joint="hip"/>
+    <motor name="knee_m" joint="knee"/>
+  </actuator>
+  <keyframe>
+    <key name="stand" qpos="0 0.7 -1.4"/>
+  </keyframe>
+</mujoco>

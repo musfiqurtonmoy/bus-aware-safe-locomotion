@@ -1,0 +1,7 @@
+method,train,seed,n_episodes,n_identical,max_abs_dheight,identical
+baseline_ws+filter@test,baseline_ws,0,30,20,0.003823057097084692,False
+baseline_ws+filter@test,baseline_ws,1,30,19,0.009919733659639635,False
+baseline_ws+filter@test,baseline_ws,2,30,30,0.0,True
+filter_ws,filter_ws,0,30,30,0.0,True
+filter_ws,filter_ws,1,30,28,0.0002835963356043192,False
+filter_ws,filter_ws,2,30,30,0.0,True
